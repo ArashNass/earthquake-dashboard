@@ -156,7 +156,7 @@ def build(top_events, all_data, now_str):
 .sw-bar a.sw-home{margin-left:0;font-weight:800;color:#fff}
 .sw-bar a.sw-on{color:#fff;border-bottom:2px solid #2458ff;padding-bottom:2px}
 @media(max-width:560px){.sw-bar{font-size:12px;padding:8px 12px}.sw-bar a{margin-left:10px}}
-</style><a class="sw-home" href="/">Home</a><div><a href="/earthquake-rupture/">Fault mechanism</a><a href="/world-faults/">Global faults</a><a class="sw-on" href="/earthquake-dashboard/">Latest earthquakes</a></div></nav>""",
+</style><a class="sw-home" href="/">Home</a><div><a href="/earthquake-rupture/">Fault mechanism</a><a href="/world-faults/">Global faults</a><a class="sw-on" href="/earthquake-dashboard/">Latest earthquakes</a><a href="/rc-section-designer/">Section designer</a></div></nav>""",
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
