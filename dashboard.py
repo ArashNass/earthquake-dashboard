@@ -135,18 +135,18 @@ def build(top_events, all_data, now_str):
         '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>',
         "<style>" + CSS + "</style>",
         "</head><body>",
-        # Shared site navigation (consistent across arashnassirpour.com projects)
-        '<nav class="sw-bar" style="position:relative;z-index:2000;background:#101522;'
-        "font-family:Inter,'Segoe UI',system-ui,sans-serif;display:flex;justify-content:space-between;"
-        'align-items:center;padding:9px 18px;font-size:13px;flex-shrink:0">'
-        '<a href="https://arashnassirpour.com/" style="display:flex;align-items:center;gap:9px;'
-        'color:#fff;font-weight:800;text-decoration:none">'
-        "<span>Arash Nassirpour</span></a>"
-        "<div>"
-        '<a href="https://arashnassirpour.com/earthquake_rupture/" style="color:#aab3c5;text-decoration:none;font-weight:600;margin-left:16px">Rupture</a>'
-        '<a href="https://arashnassirpour.com/world_faults/" style="color:#aab3c5;text-decoration:none;font-weight:600;margin-left:16px">World faults</a>'
-        '<a href="https://arashnassirpour.com/dashboard/" style="color:#fff;border-bottom:2px solid #2458ff;padding-bottom:2px;text-decoration:none;font-weight:600;margin-left:16px">Dashboard</a>'
-        "</div></nav>",
+        # Shared site navigation - IDENTICAL markup on all arashnassirpour.com pages.
+        # If you change it here, change it in personal-site, earthquake-rupture
+        # and world-faults too.
+        """<!-- shared site navigation -->
+<nav class="sw-bar"><style>
+.sw-bar{position:relative;z-index:2000;background:#101522;font-family:Inter,'Segoe UI',system-ui,sans-serif;display:flex;justify-content:space-between;align-items:center;padding:9px 18px;font-size:13px;flex-shrink:0;line-height:1}
+.sw-bar a{color:#aab3c5;text-decoration:none;font-weight:600;margin-left:16px;transition:color .15s}
+.sw-bar a:hover{color:#fff}
+.sw-bar a.sw-home{margin-left:0;font-weight:800;color:#fff}
+.sw-bar a.sw-on{color:#fff;border-bottom:2px solid #2458ff;padding-bottom:2px}
+@media(max-width:560px){.sw-bar{font-size:12px;padding:8px 12px}.sw-bar a{margin-left:10px}}
+</style><a class="sw-home" href="https://arashnassirpour.com/">Home</a><div><a href="https://arashnassirpour.com/earthquake_rupture/">Fault mechanism</a><a href="https://arashnassirpour.com/world_faults/">Global faults</a><a class="sw-on" href="https://arashnassirpour.com/dashboard/">Latest earthquakes</a></div></nav>""",
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
