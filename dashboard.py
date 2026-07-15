@@ -132,6 +132,10 @@ def build(top_events, all_data, now_str):
         '<meta charset="UTF-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
         "<title>Earthquake Rapid Response Dashboard</title>",
+        "<!-- Google Analytics -->",
+        '<script async src="https://www.googletagmanager.com/gtag/js?id=G-0WERZ6WKQY"></script>',
+        "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
+        'gtag("js",new Date());gtag("config","G-0WERZ6WKQY");</script>',
         '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>',
         "<style>" + CSS + "</style>",
         "</head><body>",
