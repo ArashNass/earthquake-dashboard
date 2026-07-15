@@ -141,8 +141,6 @@ def build(top_events, all_data, now_str):
         'align-items:center;padding:9px 18px;font-size:13px;flex-shrink:0">'
         '<a href="https://arashnassirpour.com/" style="display:flex;align-items:center;gap:9px;'
         'color:#fff;font-weight:800;text-decoration:none">'
-        '<span style="width:24px;height:24px;border-radius:7px;background:#2458ff;color:#fff;'
-        'display:grid;place-items:center;font-size:10px;font-weight:800">EQ</span>'
         "<span>Arash Nassirpour</span></a>"
         "<div>"
         '<a href="https://arashnassirpour.com/earthquake_rupture/" style="color:#aab3c5;text-decoration:none;font-weight:600;margin-left:16px">Rupture</a>'
