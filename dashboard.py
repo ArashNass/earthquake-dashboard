@@ -131,7 +131,13 @@ def build(top_events, all_data, now_str):
         '<html lang="en"><head>',
         '<meta charset="UTF-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
-        "<title>Earthquake Rapid Response Dashboard</title>",
+        "<title>Latest Earthquakes - Live Dashboard with ShakeMaps and Aftershock Forecasts</title>",
+        '<meta name="description" content="The largest earthquakes of the past 30 days: ShakeMap ground motion, aftershock probabilities, fault mechanisms and impact intelligence. Automatically updated every 6 hours from USGS data." />',
+        '<link rel="canonical" href="https://arashnassirpour.com/earthquake-dashboard/" />',
+        '<meta property="og:title" content="Latest Earthquakes - Live Dashboard" />',
+        '<meta property="og:description" content="ShakeMaps, aftershock forecasts and impact intelligence for the largest recent earthquakes. Updates every 6 hours." />',
+        '<meta property="og:url" content="https://arashnassirpour.com/earthquake-dashboard/" />',
+        '<meta property="og:type" content="website" />',
         "<!-- Google Analytics -->",
         '<script async src="https://www.googletagmanager.com/gtag/js?id=G-0WERZ6WKQY"></script>',
         "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
@@ -154,7 +160,7 @@ def build(top_events, all_data, now_str):
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
-        '    <div class="nav-sub">Reinsurance Intelligence - Internal Use Only</div>',
+        '    <div class="nav-sub">Live earthquake briefing - updates every 6 hours</div>',
         "  </div>",
         '  <div style="font-size:11px;color:#64748b;text-align:right">' + html.escape(now_str)
         + "<br>USGS NEIC / PAGER / ShakeMap</div>",
@@ -170,6 +176,8 @@ def build(top_events, all_data, now_str):
         "  </div>",
         '  <div class="rp"><div id="rp-inner"></div></div>',
         "</div>",
+        '<div style="flex-shrink:0;background:#fff;border-top:1px solid #e2e6f0;padding:7px 20px;font-size:11px;color:#64748b;text-align:center">'
+        '&copy; 2026 <a href="/" style="color:inherit">Arash Nassirpour</a> &middot; <a href="/" style="color:inherit">Home</a> &middot; Preliminary information, not for emergency response.</div>',
         '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>',
         "<script>" + js + "</script>",
         "</body></html>",
