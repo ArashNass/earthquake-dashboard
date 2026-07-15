@@ -145,18 +145,22 @@ def build(top_events, all_data, now_str):
         '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>',
         "<style>" + CSS + "</style>",
         "</head><body>",
-        # Shared site navigation - IDENTICAL markup on all arashnassirpour.com pages.
-        # If you change it here, change it in personal-site, earthquake-rupture
-        # and world-faults too.
-        """<!-- shared site navigation -->
-<nav class="sw-bar"><style>
-.sw-bar{position:relative;z-index:2000;background:#101522;font-family:Inter,'Segoe UI',system-ui,sans-serif;display:flex;justify-content:space-between;align-items:center;padding:9px 18px;font-size:13px;flex-shrink:0;line-height:1}
-.sw-bar a{color:#aab3c5;text-decoration:none;font-weight:600;margin-left:16px;transition:color .15s}
-.sw-bar a:hover{color:#fff}
-.sw-bar a.sw-home{margin-left:0;font-weight:800;color:#fff}
-.sw-bar a.sw-on{color:#fff;border-bottom:2px solid #2458ff;padding-bottom:2px}
-@media(max-width:560px){.sw-bar{font-size:12px;padding:8px 12px}.sw-bar a{margin-left:10px}}
-</style><a class="sw-home" href="/">Home</a><div><a href="/earthquake-rupture/">Fault mechanism</a><a href="/world-faults/">Global faults</a><a class="sw-on" href="/earthquake-dashboard/">Latest earthquakes</a><a href="/rc-section-designer/">Section designer</a></div></nav>""",
+        # Shared site header - keep identical across all arashnassirpour.com repos.
+        """<!-- shared site header -->
+<header class="site-hd"><style>
+.site-hd{background:#fff;border-bottom:1px solid #e5e7eb;font-family:Inter,'Segoe UI',system-ui,sans-serif;flex-shrink:0}
+.site-hd .hd-in{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:13px 24px}
+.site-hd a{text-decoration:none;color:#5f6673;font-size:12.5px;font-weight:500;transition:color .15s}
+.site-hd a:hover{color:#111827}
+.site-hd .hd-home{color:#111827;font-size:13.5px;font-weight:600}
+.site-hd .hd-links{display:flex;align-items:center;gap:24px}
+.site-hd .hd-on{color:#111827;border-bottom:1.5px solid #2458ff;padding-bottom:2px}
+.site-hd .hd-sep{color:#d1d5db;font-size:12px;user-select:none}
+.site-hd .hd-ic{display:inline-flex;color:#5f6673}
+.site-hd .hd-ic:hover{color:#111827}
+.site-hd .hd-ic svg{width:17px;height:17px}
+@media(max-width:680px){.site-hd .hd-in{padding:11px 14px}.site-hd .hd-links{gap:13px}.site-hd a{font-size:11.5px}.site-hd .hd-sep{display:none}}
+</style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><a href="/earthquake-rupture/">Fault mechanism</a><a href="/world-faults/">Global faults</a><a class="hd-on" href="/earthquake-dashboard/">Latest earthquakes</a><a href="/rc-section-designer/">Section designer</a><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div></header>""",
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
@@ -176,8 +180,7 @@ def build(top_events, all_data, now_str):
         "  </div>",
         '  <div class="rp"><div id="rp-inner"></div></div>',
         "</div>",
-        '<div style="flex-shrink:0;background:#fff;border-top:1px solid #e2e6f0;padding:7px 20px;font-size:11px;color:#64748b;text-align:center">'
-        '&copy; 2026 <a href="/" style="color:inherit">Arash Nassirpour</a> &middot; <a href="/" style="color:inherit">Home</a> &middot; <a href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" style="color:inherit">YouTube</a> &middot; <a href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" style="color:inherit">LinkedIn</a> &middot; Preliminary information, not for emergency response.</div>',
+        """<footer style="background:#fff;border-top:1px solid #e5e7eb;padding:14px 24px;text-align:center;font:400 11.5px Inter,'Segoe UI',system-ui,sans-serif;color:#8b909c;flex-shrink:0">&copy; 2026 Arash Nassirpour</footer>""",
         '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>',
         "<script>" + js + "</script>",
         "</body></html>",
