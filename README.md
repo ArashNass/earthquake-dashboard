@@ -1,6 +1,6 @@
 # Earthquake Rapid Response Dashboard
 
-**Live:** https://arashnassirpour.com/dashboard/
+**Live:** https://arashnassirpour.com/earthquake-dashboard/
 
 A self-updating briefing page for the largest earthquakes of the last 30 days.
 For each event it shows ShakeMap ground-motion layers on an interactive map,
