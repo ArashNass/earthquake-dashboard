@@ -1,0 +1,26 @@
+# netlify.toml - Netlify build configuration for the earthquake dashboard.
+#
+# On every build (triggered by the scheduled workflow, a git push, or the
+# "Trigger deploy" button in the Netlify UI), Netlify runs the Python script
+# on its build machine and publishes the freshly generated HTML.
+
+[build]
+  command = "pip install -r requirements.txt && python run.py --no-open --no-ai && mkdir -p dist && cp earthquake_brief.html dist/index.html"
+  publish = "dist"
+
+[build.environment]
+  # Uncomment and adjust if the default Python on the build image is too old:
+  # PYTHON_VERSION = "3.12"
+
+# Make sure viewers always get the newest build, never a stale cached page.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Notes:
+# - To enable the AI narrative, remove "--no-ai" from the command above and set
+#   ANTHROPIC_API_KEY as an environment variable in the Netlify UI
+#   (Site configuration -> Environment variables). Never commit the key.
+# - Each build uses roughly 1-2 free build minutes. Four builds a day is about
+#   120-240 minutes per month, within Netlify's free tier (300 min/month).
