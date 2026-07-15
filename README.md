@@ -8,7 +8,7 @@ aftershock probability forecasts, fault mechanism, historical seismicity,
 weather-driven landslide risk, building stock vulnerability, and multi-source
 news - all fetched live from USGS, GDACS, ReliefWeb, EMSC and Open-Meteo.
 The site rebuilds itself every 6 hours via a scheduled GitHub Action that
-triggers a Netlify build; any commit to `main` also deploys automatically.
+publishes to GitHub Pages; any commit to `main` also deploys automatically.
 
 ## Quick start
 
