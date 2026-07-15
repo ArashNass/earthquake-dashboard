@@ -1,9 +1,14 @@
 # Earthquake Rapid Response Dashboard
 
-Generates a self-contained `earthquake_brief.html` briefing the top recent
-earthquakes (USGS), enriched with ShakeMap layers, aftershock forecasts, fault
-mechanisms, historical context, weather-driven landslide risk, building stock
-vulnerability, multi-source news and an optional AI narrative.
+**Live:** https://arashnassirpour.com/dashboard/
+
+A self-updating briefing page for the largest earthquakes of the last 30 days.
+For each event it shows ShakeMap ground-motion layers on an interactive map,
+aftershock probability forecasts, fault mechanism, historical seismicity,
+weather-driven landslide risk, building stock vulnerability, and multi-source
+news - all fetched live from USGS, GDACS, ReliefWeb, EMSC and Open-Meteo.
+The site rebuilds itself every 6 hours via a scheduled GitHub Action that
+triggers a Netlify build; any commit to `main` also deploys automatically.
 
 ## Quick start
 
