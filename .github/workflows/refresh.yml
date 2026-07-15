@@ -1,0 +1,24 @@
+# Triggers a Netlify rebuild on a schedule so the dashboard stays live.
+#
+# One-time setup:
+#   1. In Netlify: Site configuration -> Build & deploy -> Build hooks
+#      -> Add build hook -> copy the URL it gives you.
+#   2. In GitHub: repo Settings -> Secrets and variables -> Actions
+#      -> New repository secret -> name: NETLIFY_BUILD_HOOK -> paste the URL.
+#
+# The schedule below rebuilds 4 times a day (every 6 hours, UTC).
+# You can also trigger it manually from the Actions tab (workflow_dispatch).
+
+name: Refresh earthquake dashboard
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # 00:00, 06:00, 12:00, 18:00 UTC
+  workflow_dispatch:
+
+jobs:
+  trigger-netlify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Netlify build hook
+        run: curl -s -X POST "${{ secrets.NETLIFY_BUILD_HOOK }}"
