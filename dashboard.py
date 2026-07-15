@@ -177,7 +177,7 @@ def build(top_events, all_data, now_str):
         '  <div class="rp"><div id="rp-inner"></div></div>',
         "</div>",
         '<div style="flex-shrink:0;background:#fff;border-top:1px solid #e2e6f0;padding:7px 20px;font-size:11px;color:#64748b;text-align:center">'
-        '&copy; 2026 <a href="/" style="color:inherit">Arash Nassirpour</a> &middot; <a href="/" style="color:inherit">Home</a> &middot; Preliminary information, not for emergency response.</div>',
+        '&copy; 2026 <a href="/" style="color:inherit">Arash Nassirpour</a> &middot; <a href="/" style="color:inherit">Home</a> &middot; <a href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" style="color:inherit">YouTube</a> &middot; Preliminary information, not for emergency response.</div>',
         '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>',
         "<script>" + js + "</script>",
         "</body></html>",
