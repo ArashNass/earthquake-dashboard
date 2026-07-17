@@ -4,82 +4,53 @@
 
 import html
 import json
-import re
-import urllib.request
-import urllib.parse
 from pathlib import Path
 
 from settings import ALERT_C, MMI_C, PAGER_D, JS_FILE
 
 HERE = Path(__file__).resolve().parent
 
-RELIEFWEB_URL = "https://api.reliefweb.int/v2/reports"
-
-
-def fetch_reliefweb_alerts(limit=8):
-    """Fetch recent humanitarian/disaster report headlines from ReliefWeb
-    (UN OCHA) - covers all disaster types worldwide, not just earthquakes.
-    Public API, no auth required. Returns [] on any failure."""
-    try:
-        params = [
-            ("appname", "arashnassirpour-dashboard"),
-            ("limit", str(limit)),
-            ("sort[]", "date:desc"),
-            ("fields[include][]", "title"),
-            ("fields[include][]", "url_alias"),
-        ]
-        query = urllib.parse.urlencode(params)
-        req = urllib.request.Request(
-            RELIEFWEB_URL + "?" + query,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; arashnassirpour-dashboard/1.0)"},
-        )
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            raw = resp.read().decode("utf-8", "ignore")
-        data = json.loads(raw)
-        if "error" in data:
-            print(f"[reliefweb] API error: {data['error']}")
-            return []
-        items = []
-        for entry in data.get("data", [])[:limit]:
-            f = entry.get("fields", {})
-            title = re.sub(r"\s+", " ", html.unescape((f.get("title") or "").strip()))
-            link = f.get("url_alias") or entry.get("href") or ""
-            if title and link:
-                items.append({"title": title, "link": link})
-        print(f"[reliefweb] fetched {len(items)} alert(s)")
-        return items
-    except Exception as e:
-        print(f"[reliefweb] fetch failed: {type(e).__name__}: {e}")
-        return []
-
 
 def ercc_banner_html():
-    """Live banner of recent global disaster/humanitarian headlines from
-    ReliefWeb (UN OCHA). Falls back to a static EU Civil Protection (ERCC)
-    portal link if the live fetch fails, so the banner never breaks."""
-    alerts = fetch_reliefweb_alerts()
-    if alerts:
-        chips = "".join(
-            '<a class="ea-item" href="{link}" target="_blank" rel="noopener">{title}</a>'
-            '<span class="ea-sep">&#8226;</span>'.format(
-                link=html.escape(a["link"]), title=html.escape(a["title"])
-            )
-            for a in alerts
-        )
-        return (
-            '<div class="ea-bar">'
-            '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
-            '  <div class="ea-track"><div class="ea-scroll">' + chips + chips + "</div></div>"
-            '  <a class="ea-more" href="https://reliefweb.int/updates" target="_blank" rel="noopener">ReliefWeb &rarr;</a>'
-            "</div>"
-        )
+    """Static EU Civil Protection (ERCC) banner, rendered server-side so it
+    always works with zero network dependency at build time. A small inline
+    script (see ERCC_UPGRADE_JS) then tries to upgrade it client-side to live
+    ReliefWeb headlines - fetching from the visitor's own browser sidesteps
+    the server-side blocking that affects requests from cloud/datacenter IP
+    ranges like GitHub Actions runners."""
     return (
-        '<div class="ea-bar">'
+        '<div class="ea-bar" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>EU CIVIL PROTECTION</div>'
-        '  <div class="ea-text">Daily maps and flash reports on unfolding disasters and humanitarian crises worldwide, from the European Emergency Response Coordination Centre.</div>'
-        '  <a class="ea-more" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" target="_blank" rel="noopener">Open ERCC Portal &rarr;</a>'
+        '  <div class="ea-text" id="ea-text">Daily maps and flash reports on unfolding disasters and humanitarian crises worldwide, from the European Emergency Response Coordination Centre.</div>'
+        '  <a class="ea-more" id="ea-more" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" target="_blank" rel="noopener">Open ERCC Portal &rarr;</a>'
         "</div>"
     )
+
+
+ERCC_UPGRADE_JS = """
+(function(){
+  var url = 'https://api.reliefweb.int/v2/reports?appname=arashnassirpour-dashboard&limit=8&sort%5B%5D=date%3Adesc&fields%5Binclude%5D%5B%5D=title&fields%5Binclude%5D%5B%5D=url_alias';
+  fetch(url).then(function(r){ return r.json(); }).then(function(data){
+    if (!data || !data.data || !data.data.length) return;
+    var items = data.data.map(function(entry){
+      var f = entry.fields || {};
+      return { title: (f.title || '').trim(), link: f.url_alias || entry.href || '' };
+    }).filter(function(it){ return it.title && it.link; });
+    if (!items.length) return;
+    var esc = function(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+    var chips = items.map(function(it){
+      return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
+    }).join('');
+    var bar = document.getElementById('ea-bar');
+    if (!bar) return;
+    bar.querySelector('.ea-label').innerHTML = '<span class="ea-dot"></span>GLOBAL DISASTER ALERTS';
+    var text = document.getElementById('ea-text');
+    if (text) text.outerHTML = '<div class="ea-track"><div class="ea-scroll">' + chips + chips + '</div></div>';
+    var more = document.getElementById('ea-more');
+    if (more) { more.href = 'https://reliefweb.int/updates'; more.textContent = 'ReliefWeb \\u2192'; }
+  }).catch(function(){ /* keep the static ERCC banner as-is */ });
+})();
+"""
 
 
 
@@ -253,6 +224,7 @@ def build(top_events, all_data, now_str):
 @media(max-width:680px){.site-hd .hd-in{padding:11px 14px}.site-hd .hd-links{gap:13px}.site-hd a{font-size:11.5px}.site-hd .hd-sep{display:none}}
 </style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><a href="/earthquake-rupture/">Fault Mechanism</a><span class="hd-sep">|</span><a href="/world-faults/">Global Faults</a><span class="hd-sep">|</span><a class="hd-on" href="/earthquake-dashboard/">Rapid Earthquake Response</a><span class="hd-sep">|</span><a href="/rc-section-designer/">Reinforced Concrete Section Designer</a><span class="hd-sep">|</span><a href="/hazus/">Vulnerability Explorer</a><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div></header>""",
         ticker,
+        "<script>" + ERCC_UPGRADE_JS + "</script>",
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
