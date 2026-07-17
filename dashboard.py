@@ -54,7 +54,7 @@ ERCC_UPGRADE_JS = """
 
     if (!allItems.length) {
       console.log('[disaster-alerts] no items from either source');
-      scroll.innerHTML = '<span class="ea-item" style="cursor:default;color:#8fa8c4">No live alerts available right now</span>';
+      scroll.innerHTML = '<span class="ea-item" style="cursor:default;color:#b91c1c">No live alerts available right now</span>';
       if (filterEl) filterEl.style.display = 'none';
       return;
     }
@@ -145,21 +145,21 @@ CSS = """\
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;min-height:100vh;font-size:13px;color:#1a1f36}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ea-bar{display:none;align-items:center;gap:16px;background:#1a1e27;padding:12px 22px;flex-shrink:0;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.15);margin-top:6px}
+.ea-bar{display:none;align-items:center;gap:16px;background:#fef2f2;border-top:1px solid #fecaca;border-bottom:1px solid #fecaca;padding:11px 22px;flex-shrink:0;overflow:hidden;margin-top:6px}
 .ea-bar.ea-show{display:flex}
 .ea-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.8px;color:#fff;white-space:nowrap;flex-shrink:0;background:#dc2626;padding:5px 12px;border-radius:4px}
 .ea-dot{width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0;animation:pulse 2s infinite}
 .ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
 .ea-scroll{display:inline-block;animation:ea-marquee 140s linear infinite}
 .ea-track:hover .ea-scroll{animation-play-state:paused}
-.ea-item{color:#e4e7ee;text-decoration:none;font-size:14px;font-weight:600;padding:0 4px}
-.ea-item:hover{color:#fff;text-decoration:underline}
-.ea-sep{color:#5b6172;margin:0 26px;font-size:12px}
-.ea-more{flex-shrink:0;color:#9ca6bd;font-size:10.5px;font-weight:600;text-decoration:none;white-space:nowrap}
-.ea-more:hover{color:#fff}
-.ea-filter{flex-shrink:0;background:#2a2f3d;color:#e4e7ee;border:1px solid #3d4356;border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
-.ea-filter:hover{border-color:#9ca6bd}
-.ea-filter option{background:#1a1e27;color:#fff}
+.ea-item{color:#7f1d1d;text-decoration:none;font-size:14px;font-weight:600;padding:0 4px}
+.ea-item:hover{color:#dc2626;text-decoration:underline}
+.ea-sep{color:#e6a5a5;margin:0 26px;font-size:12px}
+.ea-more{flex-shrink:0;color:#b91c1c;font-size:10.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.ea-more:hover{color:#7f1d1d}
+.ea-filter{flex-shrink:0;background:#fff;color:#7f1d1d;border:1px solid #fca5a5;border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
+.ea-filter:hover{border-color:#dc2626}
+.ea-filter option{background:#fff;color:#7f1d1d}
 @keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:680px){.ea-filter{font-size:9px;padding:3px 6px}.ea-item{font-size:12px}.ea-label{font-size:10px;padding:4px 8px}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
@@ -296,7 +296,7 @@ def build(top_events, all_data, now_str):
 </header>""",
         '<div class="ea-bar ea-show" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
-        '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#8fa8c4">Loading latest alerts&hellip;</span></div></div>'
+        '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#b91c1c">Loading latest alerts&hellip;</span></div></div>'
         '  <select class="ea-filter" id="ea-filter">'
         '    <option value="all">All Sources</option>'
         '    <option value="eonet">Wildfires, Storms &amp; More</option>'
