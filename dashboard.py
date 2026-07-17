@@ -6,6 +6,7 @@ import html
 import json
 import re
 import urllib.request
+import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -18,8 +19,12 @@ ERCC_FEED_URL = "https://erccportal.jrc.ec.europa.eu/DesktopModules/XModPro/Feed
 
 def fetch_ercc_alerts(limit=8):
     """Fetch the EU Civil Protection (ERCC) Daily Flash RSS feed.
-    Returns a list of {title, link} dicts, or [] on any failure -
-    the ticker simply doesn't render rather than breaking the build."""
+    Tries a direct fetch first, then falls back to a public RSS->JSON proxy
+    (many institutional sites block direct requests from cloud/datacenter IP
+    ranges, which is what GitHub Actions runners use). Returns a list of
+    {title, link} dicts, or [] on total failure - the ticker simply doesn't
+    render rather than breaking the build."""
+    # 1) direct fetch
     try:
         req = urllib.request.Request(
             ERCC_FEED_URL,
@@ -35,10 +40,36 @@ def fetch_ercc_alerts(limit=8):
             title = re.sub(r"\s+", " ", html.unescape(title))
             if title and link:
                 items.append({"title": title, "link": link})
-        print(f"[ercc] fetched {len(items)} alert(s)")
+        if items:
+            print(f"[ercc] direct fetch: {len(items)} alert(s)")
+            return items
+        print("[ercc] direct fetch returned 0 items, trying proxy")
+    except Exception as e:
+        print(f"[ercc] direct fetch failed: {type(e).__name__}: {e}; trying proxy")
+
+    # 2) rss2json proxy fallback
+    try:
+        proxy_url = (
+            "https://api.rss2json.com/v1/api.json?rss_url="
+            + urllib.parse.quote(ERCC_FEED_URL, safe="")
+            + f"&count={limit}"
+        )
+        req = urllib.request.Request(
+            proxy_url, headers={"User-Agent": "Mozilla/5.0 (compatible; arashnassirpour-dashboard/1.0)"}
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8", "ignore"))
+        items = []
+        if data.get("status") == "ok":
+            for it in data.get("items", [])[:limit]:
+                title = re.sub(r"\s+", " ", html.unescape((it.get("title") or "").strip()))
+                link = (it.get("link") or "").strip()
+                if title and link:
+                    items.append({"title": title, "link": link})
+        print(f"[ercc] proxy fetch: {len(items)} alert(s)")
         return items
     except Exception as e:
-        print(f"[ercc] fetch failed: {type(e).__name__}: {e}")
+        print(f"[ercc] proxy fetch failed: {type(e).__name__}: {e}")
         return []
 
 
