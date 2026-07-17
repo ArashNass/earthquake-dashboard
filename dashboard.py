@@ -140,23 +140,23 @@ CSS = """\
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:13px;color:#1a1f36}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ea-bar{display:none;align-items:center;gap:14px;background:#0F2A4A;padding:8px 20px;flex-shrink:0;overflow:hidden}
+.ea-bar{display:none;align-items:center;gap:16px;background:#0F2A4A;padding:12px 22px;flex-shrink:0;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 .ea-bar.ea-show{display:flex}
-.ea-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#fff;white-space:nowrap;flex-shrink:0}
-.ea-dot{width:6px;height:6px;border-radius:50%;background:#ff5a5f;flex-shrink:0;animation:pulse 2s infinite}
+.ea-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.8px;color:#fff;white-space:nowrap;flex-shrink:0;background:#c0281f;padding:5px 12px;border-radius:4px}
+.ea-dot{width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0;animation:pulse 2s infinite}
 .ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
 .ea-scroll{display:inline-block;animation:ea-marquee 140s linear infinite}
 .ea-track:hover .ea-scroll{animation-play-state:paused}
-.ea-item{color:#cfe0f0;text-decoration:none;font-size:11.5px;font-weight:500;padding:0 4px}
+.ea-item{color:#eaf2fb;text-decoration:none;font-size:14px;font-weight:600;padding:0 4px}
 .ea-item:hover{color:#fff;text-decoration:underline}
-.ea-sep{color:#4c6b8c;margin:0 22px;font-size:10px}
+.ea-sep{color:#5a7ba3;margin:0 26px;font-size:12px}
 .ea-more{flex-shrink:0;color:#8fc1e8;font-size:10.5px;font-weight:600;text-decoration:none;white-space:nowrap}
 .ea-more:hover{color:#fff}
-.ea-filter{flex-shrink:0;background:#0F2A4A;color:#cfe0f0;border:1px solid #2a4a70;border-radius:4px;font-size:10px;font-weight:600;padding:3px 6px;cursor:pointer}
+.ea-filter{flex-shrink:0;background:#16385e;color:#eaf2fb;border:1px solid #2a4a70;border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
 .ea-filter:hover{border-color:#8fc1e8}
 .ea-filter option{background:#0F2A4A;color:#fff}
 @keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media(max-width:680px){.ea-filter{font-size:9px;padding:2px 4px}}
+@media(max-width:680px){.ea-filter{font-size:9px;padding:3px 6px}.ea-item{font-size:12px}.ea-label{font-size:10px;padding:4px 8px}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden}
