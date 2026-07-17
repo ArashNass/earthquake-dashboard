@@ -142,7 +142,7 @@ def _json_for_script(obj):
 
 CSS = """\
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;font-size:13px;color:#1a1f36}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13px;color:#1a1f36}
 .app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
@@ -171,7 +171,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;font-size:13
 .sb-title{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px}
 .sb-legend{display:flex;gap:14px;font-size:10px;color:#888;padding:6px 14px;border-bottom:1px solid #e2e6f0;flex-shrink:0}
 .sb-list{overflow-y:auto;flex:1}.ev-item:hover{background:#f0f4ff!important}
-.rp{flex:1;overflow-y:auto;background:#f0f2f8}
+.rp{flex:1;overflow-y:auto;background:#f4f6fb}
 #rp-inner{padding:16px;max-width:1060px;margin:0 auto}
 @media(max-width:760px){
   body{overflow:auto;height:auto}
