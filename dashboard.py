@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 
 ERCC_UPGRADE_JS = """
 (function(){
-  var url = 'https://api.reliefweb.int/v2/reports?appname=arashnassirpour-dashboard&limit=10&sort%5B%5D=date%3Adesc&fields%5Binclude%5D%5B%5D=title&fields%5Binclude%5D%5B%5D=url_alias';
+  var url = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=12';
   console.log('[disaster-alerts] fetching', url);
   fetch(url).then(function(r){
     console.log('[disaster-alerts] response status', r.status);
@@ -20,10 +20,12 @@ ERCC_UPGRADE_JS = """
     return r.json();
   }).then(function(data){
     console.log('[disaster-alerts] response data', data);
-    if (!data || !data.data || !data.data.length) { console.log('[disaster-alerts] no items in response'); return; }
-    var items = data.data.map(function(entry){
-      var f = entry.fields || {};
-      return { title: (f.title || '').trim(), link: f.url_alias || entry.href || '' };
+    var events = (data && data.events) || [];
+    if (!events.length) { console.log('[disaster-alerts] no events in response'); return; }
+    var items = events.map(function(ev){
+      var cat = (ev.categories && ev.categories[0] && ev.categories[0].title) || '';
+      var title = cat ? (cat + ': ' + ev.title) : ev.title;
+      return { title: (title || '').trim(), link: ev.link || ev.sources && ev.sources[0] && ev.sources[0].url || '' };
     }).filter(function(it){ return it.title && it.link; });
     console.log('[disaster-alerts] parsed items:', items.length);
     if (!items.length) return;
@@ -209,7 +211,7 @@ def build(top_events, all_data, now_str):
         '<div class="ea-bar" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
         '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"></div></div>'
-        '  <a class="ea-more" href="https://reliefweb.int/updates" target="_blank" rel="noopener">ReliefWeb &rarr;</a>'
+        '  <a class="ea-more" href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA EONET &rarr;</a>'
         "</div>",
         "<script>" + ERCC_UPGRADE_JS + "</script>",
         '<div class="nav">',
