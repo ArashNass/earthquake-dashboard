@@ -236,7 +236,7 @@ def build(top_events, all_data, now_str):
         """<!-- shared site header -->
 <header class="site-hd"><style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-.site-hd{background:#fff;border-bottom:1px solid #e5e7eb;font-family:Inter,'Segoe UI',system-ui,sans-serif;flex-shrink:0;position:relative;z-index:100}
+.site-hd{background:#fff;border-bottom:1px solid #e5e7eb;font-family:Inter,'Segoe UI',system-ui,sans-serif;flex-shrink:0;position:relative;z-index:9999}
 .site-hd .hd-in{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:13px 24px}
 .site-hd a{text-decoration:none;color:#5f6673;font-size:12.5px;font-weight:500;transition:color .15s}
 .site-hd a:hover{color:#111827}
@@ -246,27 +246,45 @@ def build(top_events, all_data, now_str):
 .site-hd .hd-dd-btn{display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;font:500 12.5px Inter,'Segoe UI',system-ui,sans-serif;color:#5f6673;padding:6px 2px;transition:color .15s}
 .site-hd .hd-dd-btn:hover,.site-hd .hd-dd.open .hd-dd-btn{color:#111827}
 .site-hd .hd-dd-btn.hd-on-btn{color:#2458ff}
-.site-hd .hd-dd-btn svg{width:10px;height:10px;transition:transform .15s;flex-shrink:0}
-.site-hd .hd-dd.open .hd-dd-btn svg{transform:rotate(180deg)}
-.site-hd .hd-dd-menu{position:absolute;top:calc(100% + 12px);right:0;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 10px 28px rgba(17,24,39,.12);padding:6px;min-width:250px;display:none;flex-direction:column;gap:1px}
+.site-hd .hd-dd-btn-ic{width:15px;height:15px;flex-shrink:0}
+.site-hd .hd-dd-btn-ic svg{width:100%;height:100%}
+.site-hd .hd-dd-btn svg.hd-chev{width:10px;height:10px;transition:transform .15s;flex-shrink:0;color:#9ca3af}
+.site-hd .hd-dd.open .hd-dd-btn svg.hd-chev{transform:rotate(180deg)}
+.site-hd .hd-dd-menu{position:fixed;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 32px rgba(17,24,39,.14);padding:8px;display:none;gap:2px;z-index:10000}
 .site-hd .hd-dd.open .hd-dd-menu{display:flex}
-.site-hd .hd-dd-menu a{padding:9px 12px;border-radius:6px;font-size:12.5px;color:#374151;font-weight:500}
+.site-hd .hd-dd-menu a{display:flex;flex-direction:column;align-items:center;gap:7px;width:96px;padding:12px 8px;border-radius:8px;font-size:11px;color:#374151;font-weight:500;text-align:center;line-height:1.3}
 .site-hd .hd-dd-menu a:hover{background:#f3f4f6;color:#111827}
 .site-hd .hd-dd-menu a.hd-on{background:#eef2ff;color:#2458ff}
+.site-hd .hd-dd-menu a .hd-dd-ic{width:22px;height:22px}
+.site-hd .hd-dd-menu a .hd-dd-ic svg{width:100%;height:100%}
 .site-hd .hd-sep{color:#d1d5db;font-size:12px;user-select:none}
 .site-hd .hd-ic{display:inline-flex;color:#5f6673}
 .site-hd .hd-ic:hover{color:#111827}
 .site-hd .hd-ic svg{width:17px;height:17px}
-@media(max-width:680px){.site-hd .hd-in{padding:11px 14px}.site-hd .hd-links{gap:12px}.site-hd a,.site-hd .hd-dd-btn{font-size:11.5px}.site-hd .hd-sep{display:none}.site-hd .hd-dd-menu{right:-14px;min-width:230px}}
-</style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><div class="hd-dd" id="hdDd"><button class="hd-dd-btn hd-on-btn" id="hdDdBtn" type="button">Rapid Earthquake Response<svg viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="hd-dd-menu"><a href="/earthquake-rupture/">Fault Mechanism</a><a href="/world-faults/">Global Faults</a><a class="hd-on" href="/earthquake-dashboard/">Rapid Earthquake Response</a><a href="/rc-section-designer/">Reinforced Concrete Section Designer</a><a href="/hazus/">Vulnerability Explorer</a></div></div><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div>
+@media(max-width:680px){.site-hd .hd-in{padding:11px 14px}.site-hd .hd-links{gap:12px}.site-hd a,.site-hd .hd-dd-btn{font-size:11.5px}.site-hd .hd-sep{display:none}.site-hd .hd-dd-menu{padding:6px;flex-wrap:wrap;max-width:calc(100vw - 28px)}.site-hd .hd-dd-menu a{width:84px}}
+</style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><div class="hd-dd" id="hdDd"><button class="hd-dd-btn hd-on-btn" id="hdDdBtn" type="button"><span class="hd-dd-btn-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14 2.5-7h4"/></svg></span>Rapid Earthquake Response<svg class="hd-chev" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="hd-dd-menu"><a href="/earthquake-rupture/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#534AB7" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></span>Fault Mechanism</a><a href="/world-faults/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 2.6 4 5.6 4 9s-1.3 6.4-4 9c-2.7-2.6-4-5.6-4-9s1.3-6.4 4-9z"/></svg></span>Global Faults & Live Earthquakes</a><a class="hd-on" href="/earthquake-dashboard/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#A32D2D" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14 2.5-7h4"/></svg></span>Rapid Earthquake Response</a><a href="/rc-section-designer/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#854F0B" stroke-width="1.9"><rect x="4.5" y="5" width="15" height="14" rx="1.5"/><circle cx="9" cy="9.5" r="1.1" fill="#854F0B" stroke="none"/><circle cx="15" cy="9.5" r="1.1" fill="#854F0B" stroke="none"/><circle cx="9" cy="14.5" r="1.1" fill="#854F0B" stroke="none"/><circle cx="15" cy="14.5" r="1.1" fill="#854F0B" stroke="none"/></svg></span>Reinforced Concrete Section Designer</a><a href="/hazus/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#1E6B8C" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M5 18V9l4-4 4 4v9M13 18v-6l3-3 3 3v6"/></svg></span>Vulnerability Explorer</a></div></div><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div>
 <script>
 (function(){
   var dd = document.getElementById('hdDd');
   var btn = document.getElementById('hdDdBtn');
-  if(!dd||!btn) return;
-  btn.addEventListener('click', function(e){ e.stopPropagation(); dd.classList.toggle('open'); });
+  var menu = dd ? dd.querySelector('.hd-dd-menu') : null;
+  if(!dd||!btn||!menu) return;
+  function positionMenu(){
+    var r = btn.getBoundingClientRect();
+    menu.style.top = (r.bottom + 10) + 'px';
+    var left = r.right - menu.offsetWidth;
+    if (left < 10) left = 10;
+    menu.style.left = left + 'px';
+  }
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    dd.classList.toggle('open');
+    if (dd.classList.contains('open')) positionMenu();
+  });
   document.addEventListener('click', function(){ dd.classList.remove('open'); });
-  dd.querySelector('.hd-dd-menu').addEventListener('click', function(e){ e.stopPropagation(); });
+  window.addEventListener('resize', function(){ if (dd.classList.contains('open')) positionMenu(); });
+  window.addEventListener('scroll', function(){ if (dd.classList.contains('open')) positionMenu(); }, true);
+  menu.addEventListener('click', function(e){ e.stopPropagation(); });
 })();
 </script>
 </header>""",
