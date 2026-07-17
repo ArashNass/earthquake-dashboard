@@ -4,91 +4,23 @@
 
 import html
 import json
-import re
-import urllib.request
-import urllib.parse
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from settings import ALERT_C, MMI_C, PAGER_D, JS_FILE
 
 HERE = Path(__file__).resolve().parent
 
-ERCC_FEED_URL = "https://erccportal.jrc.ec.europa.eu/DesktopModules/XModPro/Feed.aspx?xfd=erc_flash_last15Flashes&pid=0"
 
-
-def fetch_ercc_alerts(limit=8):
-    """Fetch the EU Civil Protection (ERCC) Daily Flash RSS feed.
-    Tries a direct fetch first, then falls back to a public RSS->JSON proxy
-    (many institutional sites block direct requests from cloud/datacenter IP
-    ranges, which is what GitHub Actions runners use). Returns a list of
-    {title, link} dicts, or [] on total failure - the ticker simply doesn't
-    render rather than breaking the build."""
-    # 1) direct fetch
-    try:
-        req = urllib.request.Request(
-            ERCC_FEED_URL,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; arashnassirpour-dashboard/1.0)"},
-        )
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            raw = resp.read()
-        root = ET.fromstring(raw)
-        items = []
-        for item in root.findall(".//item")[:limit]:
-            title = (item.findtext("title") or "").strip()
-            link = (item.findtext("link") or "").strip()
-            title = re.sub(r"\s+", " ", html.unescape(title))
-            if title and link:
-                items.append({"title": title, "link": link})
-        if items:
-            print(f"[ercc] direct fetch: {len(items)} alert(s)")
-            return items
-        print("[ercc] direct fetch returned 0 items, trying proxy")
-    except Exception as e:
-        print(f"[ercc] direct fetch failed: {type(e).__name__}: {e}; trying proxy")
-
-    # 2) rss2json proxy fallback
-    try:
-        proxy_url = (
-            "https://api.rss2json.com/v1/api.json?rss_url="
-            + urllib.parse.quote(ERCC_FEED_URL, safe="")
-            + f"&count={limit}"
-        )
-        req = urllib.request.Request(
-            proxy_url, headers={"User-Agent": "Mozilla/5.0 (compatible; arashnassirpour-dashboard/1.0)"}
-        )
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.loads(resp.read().decode("utf-8", "ignore"))
-        items = []
-        if data.get("status") == "ok":
-            for it in data.get("items", [])[:limit]:
-                title = re.sub(r"\s+", " ", html.unescape((it.get("title") or "").strip()))
-                link = (it.get("link") or "").strip()
-                if title and link:
-                    items.append({"title": title, "link": link})
-        print(f"[ercc] proxy fetch: {len(items)} alert(s)")
-        return items
-    except Exception as e:
-        print(f"[ercc] proxy fetch failed: {type(e).__name__}: {e}")
-        return []
-
-
-def alerts_ticker_html(alerts):
-    """Renders a compact wire-service style headline strip. Returns '' if no alerts."""
-    if not alerts:
-        return ""
-    chips = "".join(
-        '<a class="ea-item" href="{link}" target="_blank" rel="noopener">{title}</a>'
-        '<span class="ea-sep">&#8226;</span>'.format(
-            link=html.escape(a["link"]), title=html.escape(a["title"])
-        )
-        for a in alerts
-    )
+def ercc_banner_html():
+    """Static banner linking to the EU Civil Protection (ERCC) portal.
+    A live feed was attempted but the source blocks requests from cloud/
+    datacenter IP ranges (including GitHub Actions runners), so this link
+    is the reliable option rather than a ticker that silently fails."""
     return (
         '<div class="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>EU CIVIL PROTECTION</div>'
-        '  <div class="ea-track"><div class="ea-scroll">' + chips + chips + "</div></div>"
-        '  <a class="ea-more" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" target="_blank" rel="noopener">All alerts &rarr;</a>'
+        '  <div class="ea-text">Daily maps and flash reports on unfolding disasters and humanitarian crises worldwide, from the European Emergency Response Coordination Centre.</div>'
+        '  <a class="ea-more" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" target="_blank" rel="noopener">Open ERCC Portal &rarr;</a>'
         "</div>"
     )
 
@@ -160,19 +92,13 @@ CSS = """\
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:13px;color:#1a1f36}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ea-bar{display:flex;align-items:center;gap:14px;background:#0F2A4A;padding:7px 20px;flex-shrink:0;overflow:hidden}
+.ea-bar{display:flex;align-items:center;gap:14px;background:#0F2A4A;padding:8px 20px;flex-shrink:0}
 .ea-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#fff;white-space:nowrap;flex-shrink:0}
 .ea-dot{width:6px;height:6px;border-radius:50%;background:#ff5a5f;flex-shrink:0;animation:pulse 2s infinite}
-.ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
-.ea-scroll{display:inline-block;animation:ea-marquee 42s linear infinite}
-.ea-track:hover .ea-scroll{animation-play-state:paused}
-.ea-item{color:#cfe0f0;text-decoration:none;font-size:11.5px;font-weight:500}
-.ea-item:hover{color:#fff;text-decoration:underline}
-.ea-sep{color:#4c6b8c;margin:0 14px;font-size:10px}
+.ea-text{flex:1;color:#cfe0f0;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ea-more{flex-shrink:0;color:#8fc1e8;font-size:10.5px;font-weight:600;text-decoration:none;white-space:nowrap}
 .ea-more:hover{color:#fff}
-@keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media(max-width:680px){.ea-more{display:none}}
+@media(max-width:680px){.ea-text{display:none}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden}
@@ -204,8 +130,7 @@ def load_js():
 
 
 def build(top_events, all_data, now_str):
-    alerts = fetch_ercc_alerts()
-    ticker = alerts_ticker_html(alerts)
+    ticker = ercc_banner_html()
 
     # all_data[i] was loaded from top_events[i]; keep the two lists aligned and
     # make the sidebar use the id the data was actually stored under, so a
