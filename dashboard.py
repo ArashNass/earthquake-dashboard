@@ -235,6 +235,7 @@ def build(top_events, all_data, now_str):
         # Shared site header - keep identical across all arashnassirpour.com repos.
         """<!-- shared site header -->
 <header class="site-hd"><style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 .site-hd{background:#fff;border-bottom:1px solid #e5e7eb;font-family:Inter,'Segoe UI',system-ui,sans-serif;flex-shrink:0}
 .site-hd .hd-in{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;padding:13px 24px}
 .site-hd a{text-decoration:none;color:#5f6673;font-size:12.5px;font-weight:500;transition:color .15s}
