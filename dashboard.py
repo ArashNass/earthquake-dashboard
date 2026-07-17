@@ -11,48 +11,6 @@ from settings import ALERT_C, MMI_C, PAGER_D, JS_FILE
 HERE = Path(__file__).resolve().parent
 
 
-def ercc_banner_html():
-    """Static EU Civil Protection (ERCC) banner, rendered server-side so it
-    always works with zero network dependency at build time. A small inline
-    script (see ERCC_UPGRADE_JS) then tries to upgrade it client-side to live
-    ReliefWeb headlines - fetching from the visitor's own browser sidesteps
-    the server-side blocking that affects requests from cloud/datacenter IP
-    ranges like GitHub Actions runners."""
-    return (
-        '<div class="ea-bar" id="ea-bar">'
-        '  <div class="ea-label"><span class="ea-dot"></span>EU CIVIL PROTECTION</div>'
-        '  <div class="ea-text" id="ea-text">Daily maps and flash reports on unfolding disasters and humanitarian crises worldwide, from the European Emergency Response Coordination Centre.</div>'
-        '  <a class="ea-more" id="ea-more" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" target="_blank" rel="noopener">Open ERCC Portal &rarr;</a>'
-        "</div>"
-    )
-
-
-ERCC_UPGRADE_JS = """
-(function(){
-  var url = 'https://api.reliefweb.int/v2/reports?appname=arashnassirpour-dashboard&limit=8&sort%5B%5D=date%3Adesc&fields%5Binclude%5D%5B%5D=title&fields%5Binclude%5D%5B%5D=url_alias';
-  fetch(url).then(function(r){ return r.json(); }).then(function(data){
-    if (!data || !data.data || !data.data.length) return;
-    var items = data.data.map(function(entry){
-      var f = entry.fields || {};
-      return { title: (f.title || '').trim(), link: f.url_alias || entry.href || '' };
-    }).filter(function(it){ return it.title && it.link; });
-    if (!items.length) return;
-    var esc = function(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
-    var chips = items.map(function(it){
-      return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
-    }).join('');
-    var bar = document.getElementById('ea-bar');
-    if (!bar) return;
-    bar.querySelector('.ea-label').innerHTML = '<span class="ea-dot"></span>GLOBAL DISASTER ALERTS';
-    var text = document.getElementById('ea-text');
-    if (text) text.outerHTML = '<div class="ea-track"><div class="ea-scroll">' + chips + chips + '</div></div>';
-    var more = document.getElementById('ea-more');
-    if (more) { more.href = 'https://reliefweb.int/updates'; more.textContent = 'ReliefWeb \\u2192'; }
-  }).catch(function(){ /* keep the static ERCC banner as-is */ });
-})();
-"""
-
-
 
 def sidebar_item(e, selected):
     ac  = ALERT_C.get(e.get("alert") or "", ALERT_C[""])
@@ -122,20 +80,6 @@ CSS = """\
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:13px;color:#1a1f36}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ea-bar{display:flex;align-items:center;gap:14px;background:#0F2A4A;padding:8px 20px;flex-shrink:0;overflow:hidden}
-.ea-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#fff;white-space:nowrap;flex-shrink:0}
-.ea-dot{width:6px;height:6px;border-radius:50%;background:#ff5a5f;flex-shrink:0;animation:pulse 2s infinite}
-.ea-text{flex:1;color:#cfe0f0;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
-.ea-scroll{display:inline-block;animation:ea-marquee 42s linear infinite}
-.ea-track:hover .ea-scroll{animation-play-state:paused}
-.ea-item{color:#cfe0f0;text-decoration:none;font-size:11.5px;font-weight:500}
-.ea-item:hover{color:#fff;text-decoration:underline}
-.ea-sep{color:#4c6b8c;margin:0 14px;font-size:10px}
-.ea-more{flex-shrink:0;color:#8fc1e8;font-size:10.5px;font-weight:600;text-decoration:none;white-space:nowrap}
-.ea-more:hover{color:#fff}
-@keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media(max-width:680px){.ea-text{display:none}.ea-more{display:none}}
 .ercc-link{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;color:#0F2A4A;text-decoration:none;margin-top:4px}
 .ercc-link:hover{text-decoration:underline}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
@@ -169,8 +113,6 @@ def load_js():
 
 
 def build(top_events, all_data, now_str):
-    ticker = ercc_banner_html()
-
     # all_data[i] was loaded from top_events[i]; keep the two lists aligned and
     # make the sidebar use the id the data was actually stored under, so a
     # feed-id/code mismatch can never break event selection.
@@ -223,8 +165,6 @@ def build(top_events, all_data, now_str):
 .site-hd .hd-ic svg{width:17px;height:17px}
 @media(max-width:680px){.site-hd .hd-in{padding:11px 14px}.site-hd .hd-links{gap:13px}.site-hd a{font-size:11.5px}.site-hd .hd-sep{display:none}}
 </style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><a href="/earthquake-rupture/">Fault Mechanism</a><span class="hd-sep">|</span><a href="/world-faults/">Global Faults</a><span class="hd-sep">|</span><a class="hd-on" href="/earthquake-dashboard/">Rapid Earthquake Response</a><span class="hd-sep">|</span><a href="/rc-section-designer/">Reinforced Concrete Section Designer</a><span class="hd-sep">|</span><a href="/hazus/">Vulnerability Explorer</a><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div></header>""",
-        ticker,
-        "<script>" + ERCC_UPGRADE_JS + "</script>",
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
