@@ -27,7 +27,7 @@ ERCC_UPGRADE_JS = """
     return events.map(function(ev){
       var cat = (ev.categories && ev.categories[0] && ev.categories[0].title) || '';
       var title = cat ? (cat + ': ' + ev.title) : ev.title;
-      return { title: (title || '').trim(), link: ev.link || (ev.sources && ev.sources[0] && ev.sources[0].url) || '' };
+      return { title: (title || '').trim(), link: ev.link || (ev.sources && ev.sources[0] && ev.sources[0].url) || '', source: 'eonet' };
     }).filter(function(it){ return it.title && it.link; });
   }).catch(function(e){ console.log('[disaster-alerts] EONET failed:', e.message || e); return []; });
 
@@ -39,23 +39,35 @@ ERCC_UPGRADE_JS = """
     var feats = (data && data.features) || [];
     return feats.map(function(f){
       var p = f.properties || {};
-      return { title: 'Earthquake: ' + (p.title || p.place || ''), link: p.url || '' };
+      return { title: 'Earthquake: ' + (p.title || p.place || ''), link: p.url || '', source: 'usgs' };
     }).filter(function(it){ return it.title && it.link; });
   }).catch(function(e){ console.log('[disaster-alerts] USGS failed:', e.message || e); return []; });
 
   Promise.all([eonetItems, usgsItems]).then(function(results){
-    var items = results[0].concat(results[1]);
-    console.log('[disaster-alerts] combined items:', items.length, '(EONET:', results[0].length, ', USGS:', results[1].length, ')');
-    if (!items.length) { console.log('[disaster-alerts] no items from either source'); return; }
-    var chips = items.map(function(it){
-      return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
-    }).join('');
+    var allItems = results[0].concat(results[1]);
+    console.log('[disaster-alerts] combined items:', allItems.length, '(EONET:', results[0].length, ', USGS:', results[1].length, ')');
+    if (!allItems.length) { console.log('[disaster-alerts] no items from either source'); return; }
+
     var scroll = document.getElementById('ea-scroll');
     var bar = document.getElementById('ea-bar');
+    var filterEl = document.getElementById('ea-filter');
     if (!scroll || !bar) { console.log('[disaster-alerts] DOM elements not found'); return; }
-    scroll.innerHTML = chips + chips;
+
+    function render(filter){
+      var items = filter === 'all' ? allItems : allItems.filter(function(it){ return it.source === filter; });
+      if (!items.length){ scroll.innerHTML = '<span class="ea-item" style="cursor:default">No events for this filter</span>'; return; }
+      var chips = items.map(function(it){
+        return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
+      }).join('');
+      scroll.innerHTML = chips + chips;
+      // Duration scales with content so reading speed stays roughly constant regardless of item count.
+      scroll.style.animationDuration = Math.max(40, items.length * 9) + 's';
+    }
+
+    render('all');
     bar.classList.add('ea-show');
-    console.log('[disaster-alerts] banner shown with', items.length, 'items');
+    if (filterEl) filterEl.addEventListener('change', function(){ render(this.value); });
+    console.log('[disaster-alerts] banner shown with', allItems.length, 'items');
   });
 })();
 """
@@ -133,15 +145,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex
 .ea-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#fff;white-space:nowrap;flex-shrink:0}
 .ea-dot{width:6px;height:6px;border-radius:50%;background:#ff5a5f;flex-shrink:0;animation:pulse 2s infinite}
 .ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
-.ea-scroll{display:inline-block;animation:ea-marquee 42s linear infinite}
+.ea-scroll{display:inline-block;animation:ea-marquee 140s linear infinite}
 .ea-track:hover .ea-scroll{animation-play-state:paused}
-.ea-item{color:#cfe0f0;text-decoration:none;font-size:11.5px;font-weight:500}
+.ea-item{color:#cfe0f0;text-decoration:none;font-size:11.5px;font-weight:500;padding:0 4px}
 .ea-item:hover{color:#fff;text-decoration:underline}
-.ea-sep{color:#4c6b8c;margin:0 14px;font-size:10px}
+.ea-sep{color:#4c6b8c;margin:0 22px;font-size:10px}
 .ea-more{flex-shrink:0;color:#8fc1e8;font-size:10.5px;font-weight:600;text-decoration:none;white-space:nowrap}
 .ea-more:hover{color:#fff}
+.ea-filter{flex-shrink:0;background:#0F2A4A;color:#cfe0f0;border:1px solid #2a4a70;border-radius:4px;font-size:10px;font-weight:600;padding:3px 6px;cursor:pointer}
+.ea-filter:hover{border-color:#8fc1e8}
+.ea-filter option{background:#0F2A4A;color:#fff}
 @keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-@media(max-width:680px){.ea-more{display:none}}
+@media(max-width:680px){.ea-filter{font-size:9px;padding:2px 4px}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden}
@@ -228,7 +243,11 @@ def build(top_events, all_data, now_str):
         '<div class="ea-bar" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
         '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"></div></div>'
-        '  <a class="ea-more" href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">More &rarr;</a>'
+        '  <select class="ea-filter" id="ea-filter">'
+        '    <option value="all">All Sources</option>'
+        '    <option value="eonet">Wildfires, Storms &amp; More</option>'
+        '    <option value="usgs">Earthquakes Only</option>'
+        '  </select>'
         "</div>",
         "<script>" + ERCC_UPGRADE_JS + "</script>",
         '<div class="nav">',
