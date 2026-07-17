@@ -253,10 +253,8 @@ def build(top_events, all_data, now_str):
         '<div class="nav">',
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
-        '    <div class="nav-sub">Live earthquake briefing - updates every 6 hours</div>',
         "  </div>",
-        '  <div style="font-size:11px;color:#64748b;text-align:right">' + html.escape(now_str)
-        + "<br>USGS NEIC / PAGER / ShakeMap</div>",
+        '  <div style="font-size:11px;color:#64748b;text-align:right">' + html.escape(now_str) + "</div>",
         "</div>",
         '<div class="body">',
         '  <div class="sidebar">',
