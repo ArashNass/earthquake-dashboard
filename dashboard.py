@@ -21,22 +21,24 @@ def fetch_reliefweb_alerts(limit=8):
     (UN OCHA) - covers all disaster types worldwide, not just earthquakes.
     Public API, no auth required. Returns [] on any failure."""
     try:
-        params = {
-            "appname": "arashnassirpour-dashboard",
-            "limit": str(limit),
-            "sort[]": "date:desc",
-            "fields[include][]": "title",
-            "preset": "latest",
-        }
-        # url_alias is a separate include; urllib needs repeated keys handled manually
-        query = urllib.parse.urlencode(params, doseq=True) + \
-            "&fields[include][]=url_alias&fields[include][]=title"
+        params = [
+            ("appname", "arashnassirpour-dashboard"),
+            ("limit", str(limit)),
+            ("sort[]", "date:desc"),
+            ("fields[include][]", "title"),
+            ("fields[include][]", "url_alias"),
+        ]
+        query = urllib.parse.urlencode(params)
         req = urllib.request.Request(
             RELIEFWEB_URL + "?" + query,
             headers={"User-Agent": "Mozilla/5.0 (compatible; arashnassirpour-dashboard/1.0)"},
         )
         with urllib.request.urlopen(req, timeout=12) as resp:
-            data = json.loads(resp.read().decode("utf-8", "ignore"))
+            raw = resp.read().decode("utf-8", "ignore")
+        data = json.loads(raw)
+        if "error" in data:
+            print(f"[reliefweb] API error: {data['error']}")
+            return []
         items = []
         for entry in data.get("data", [])[:limit]:
             f = entry.get("fields", {})
