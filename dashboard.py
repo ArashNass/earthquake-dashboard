@@ -210,13 +210,21 @@ def build(top_events, all_data, now_str):
         '<html lang="en"><head>',
         '<meta charset="UTF-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
-        "<title>Latest Earthquakes - Live Dashboard with ShakeMaps and Aftershock Forecasts</title>",
-        '<meta name="description" content="The largest earthquakes of the past 30 days: ShakeMap ground motion, aftershock probabilities, fault mechanisms and impact intelligence. Automatically updated every 6 hours from USGS data." />',
+        "<title>Rapid Earthquake Response - Live Dashboard with ShakeMaps and Aftershock Forecasts</title>",
+        '<meta name="description" content="Rapid Earthquake Response: the largest earthquakes of the past 30 days with ShakeMap ground motion, aftershock probabilities, fault mechanisms and impact intelligence, plus live global disaster alerts." />',
         '<link rel="canonical" href="https://arashnassirpour.com/earthquake-dashboard/" />',
-        '<meta property="og:title" content="Latest Earthquakes - Live Dashboard" />',
-        '<meta property="og:description" content="ShakeMaps, aftershock forecasts and impact intelligence for the largest recent earthquakes. Updates every 6 hours." />',
+        '<meta property="og:title" content="Rapid Earthquake Response - Live Dashboard" />',
+        '<meta property="og:description" content="ShakeMaps, aftershock forecasts and impact intelligence for the largest recent earthquakes, with live global disaster alerts." />',
         '<meta property="og:url" content="https://arashnassirpour.com/earthquake-dashboard/" />',
         '<meta property="og:type" content="website" />',
+        '<script type="application/ld+json">'
+        '{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Rapid Earthquake Response",'
+        '"applicationCategory":"EngineeringApplication","operatingSystem":"Web",'
+        '"url":"https://arashnassirpour.com/earthquake-dashboard/",'
+        '"description":"Live USGS earthquake briefing with ShakeMaps, aftershock forecasts, and a global disaster alerts ticker.",'
+        '"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},'
+        '"author":{"@type":"Person","name":"Arash Nassirpour"}}'
+        '</script>',
         "<!-- Google Analytics -->",
         '<script async src="https://www.googletagmanager.com/gtag/js?id=G-0WERZ6WKQY"></script>',
         "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
