@@ -46,12 +46,18 @@ ERCC_UPGRADE_JS = """
   Promise.all([eonetItems, usgsItems]).then(function(results){
     var allItems = results[0].concat(results[1]);
     console.log('[disaster-alerts] combined items:', allItems.length, '(EONET:', results[0].length, ', USGS:', results[1].length, ')');
-    if (!allItems.length) { console.log('[disaster-alerts] no items from either source'); return; }
 
     var scroll = document.getElementById('ea-scroll');
     var bar = document.getElementById('ea-bar');
     var filterEl = document.getElementById('ea-filter');
     if (!scroll || !bar) { console.log('[disaster-alerts] DOM elements not found'); return; }
+
+    if (!allItems.length) {
+      console.log('[disaster-alerts] no items from either source');
+      scroll.innerHTML = '<span class="ea-item" style="cursor:default;color:#8fa8c4">No live alerts available right now</span>';
+      if (filterEl) filterEl.style.display = 'none';
+      return;
+    }
 
     function render(filter){
       var items = filter === 'all' ? allItems : allItems.filter(function(it){ return it.source === filter; });
@@ -65,7 +71,6 @@ ERCC_UPGRADE_JS = """
     }
 
     render('all');
-    bar.classList.add('ea-show');
     if (filterEl) filterEl.addEventListener('change', function(){ render(this.value); });
     console.log('[disaster-alerts] banner shown with', allItems.length, 'items');
   });
@@ -288,9 +293,9 @@ def build(top_events, all_data, now_str):
 })();
 </script>
 </header>""",
-        '<div class="ea-bar" id="ea-bar">'
+        '<div class="ea-bar ea-show" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
-        '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"></div></div>'
+        '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#8fa8c4">Loading latest alerts&hellip;</span></div></div>'
         '  <select class="ea-filter" id="ea-filter">'
         '    <option value="all">All Sources</option>'
         '    <option value="eonet">Wildfires, Storms &amp; More</option>'
