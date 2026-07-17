@@ -205,11 +205,8 @@ function buildReport(data) {
   var paramsH =
     '<div style="font-size:12px">'
     + kv('Coordinates', coordStr(ev.lat, ev.lon))
-    + kv('Depth', dep.toFixed(0) + ' km - ' + esc(dn))
     + kv('Tectonic', esc(ev.tectonic) || '--')
     + kv('Fault Type', esc(ft))
-    + kv('MMI Max', mmi ? mmi.toFixed(1) + ' - ' + esc(mmiDesc) : 'n/a', mc)
-    + kv('Est. PGA', pga ? pgaF.g + ' / ' + pgaF.ms2 + ' - ' + pgaL : 'n/a', pgaC)
     + kv('Energy', ev.energy_mt ? ev.energy_mt.toFixed(3) + ' MT TNT' : 'n/a')
     + kv('Rupture Est.', ev.rupture_km ? '~' + Number(ev.rupture_km).toFixed(0) + ' km' : 'n/a')
     + '</div>'
