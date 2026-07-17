@@ -310,7 +310,7 @@ def build(top_events, all_data, now_str):
         "  <div>",
         '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
         "  </div>",
-        '  <div style="font-size:11px;color:#64748b;text-align:right">' + html.escape(now_str) + "</div>",
+        '  <div style="font-size:11px;color:#64748b;text-align:right"><span style="font-weight:600;color:#1a1f36">Last update:</span> ' + html.escape(now_str) + "</div>",
         "</div>",
         '<div class="body">',
         '  <div class="sidebar">',
