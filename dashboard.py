@@ -142,7 +142,8 @@ def _json_for_script(obj):
 
 CSS = """\
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;min-height:100vh;font-size:13px;color:#1a1f36}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;font-size:13px;color:#1a1f36}
+.app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
 .ea-bar{display:none;align-items:center;gap:16px;background:#fef2f2;border-top:1px solid #fecaca;border-bottom:1px solid #fecaca;padding:11px 22px;flex-shrink:0;overflow:hidden;margin-top:14px}
@@ -164,7 +165,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex
 @media(max-width:680px){.ea-filter{font-size:9px;padding:3px 6px}.ea-item{font-size:12px}.ea-label{font-size:10px;padding:4px 8px}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-.body{display:flex;flex:none;height:calc(100vh - 152px);min-height:420px;overflow:hidden}
+.body{display:flex;flex:1;overflow:hidden;min-height:0}
 .sidebar{width:272px;flex-shrink:0;background:#fff;border-right:1px solid #e2e6f0;display:flex;flex-direction:column;overflow:hidden}
 .sb-hdr{padding:10px 14px;border-bottom:1px solid #e2e6f0;background:#f8f9fc;flex-shrink:0}
 .sb-title{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1px}
@@ -237,6 +238,7 @@ def build(top_events, all_data, now_str):
         '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>',
         "<style>" + CSS + "</style>",
         "</head><body>",
+        '<div class="app-shell">',
         # Shared site header - keep identical across all arashnassirpour.com repos.
         """<!-- shared site header -->
 <header class="site-hd"><style>
@@ -320,6 +322,7 @@ def build(top_events, all_data, now_str):
         '    <div class="sb-list">' + sb + "</div>",
         "  </div>",
         '  <div class="rp"><div id="rp-inner"></div></div>',
+        "</div>",
         "</div>",
         """<footer class="site-ft"><style>
 .site-ft{background:#0f2350;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;font-family:Inter,'Segoe UI',system-ui,sans-serif}
