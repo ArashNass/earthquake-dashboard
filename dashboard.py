@@ -35,8 +35,10 @@ def fetch_ercc_alerts(limit=8):
             title = re.sub(r"\s+", " ", html.unescape(title))
             if title and link:
                 items.append({"title": title, "link": link})
+        print(f"[ercc] fetched {len(items)} alert(s)")
         return items
-    except Exception:
+    except Exception as e:
+        print(f"[ercc] fetch failed: {type(e).__name__}: {e}")
         return []
 
 
