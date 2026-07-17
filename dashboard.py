@@ -4,18 +4,73 @@
 
 import html
 import json
+import re
+import urllib.request
+import urllib.parse
 from pathlib import Path
 
 from settings import ALERT_C, MMI_C, PAGER_D, JS_FILE
 
 HERE = Path(__file__).resolve().parent
 
+RELIEFWEB_URL = "https://api.reliefweb.int/v2/reports"
+
+
+def fetch_reliefweb_alerts(limit=8):
+    """Fetch recent humanitarian/disaster report headlines from ReliefWeb
+    (UN OCHA) - covers all disaster types worldwide, not just earthquakes.
+    Public API, no auth required. Returns [] on any failure."""
+    try:
+        params = {
+            "appname": "arashnassirpour-dashboard",
+            "limit": str(limit),
+            "sort[]": "date:desc",
+            "fields[include][]": "title",
+            "preset": "latest",
+        }
+        # url_alias is a separate include; urllib needs repeated keys handled manually
+        query = urllib.parse.urlencode(params, doseq=True) + \
+            "&fields[include][]=url_alias&fields[include][]=title"
+        req = urllib.request.Request(
+            RELIEFWEB_URL + "?" + query,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; arashnassirpour-dashboard/1.0)"},
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read().decode("utf-8", "ignore"))
+        items = []
+        for entry in data.get("data", [])[:limit]:
+            f = entry.get("fields", {})
+            title = re.sub(r"\s+", " ", html.unescape((f.get("title") or "").strip()))
+            link = f.get("url_alias") or entry.get("href") or ""
+            if title and link:
+                items.append({"title": title, "link": link})
+        print(f"[reliefweb] fetched {len(items)} alert(s)")
+        return items
+    except Exception as e:
+        print(f"[reliefweb] fetch failed: {type(e).__name__}: {e}")
+        return []
+
 
 def ercc_banner_html():
-    """Static banner linking to the EU Civil Protection (ERCC) portal.
-    A live feed was attempted but the source blocks requests from cloud/
-    datacenter IP ranges (including GitHub Actions runners), so this link
-    is the reliable option rather than a ticker that silently fails."""
+    """Live banner of recent global disaster/humanitarian headlines from
+    ReliefWeb (UN OCHA). Falls back to a static EU Civil Protection (ERCC)
+    portal link if the live fetch fails, so the banner never breaks."""
+    alerts = fetch_reliefweb_alerts()
+    if alerts:
+        chips = "".join(
+            '<a class="ea-item" href="{link}" target="_blank" rel="noopener">{title}</a>'
+            '<span class="ea-sep">&#8226;</span>'.format(
+                link=html.escape(a["link"]), title=html.escape(a["title"])
+            )
+            for a in alerts
+        )
+        return (
+            '<div class="ea-bar">'
+            '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
+            '  <div class="ea-track"><div class="ea-scroll">' + chips + chips + "</div></div>"
+            '  <a class="ea-more" href="https://reliefweb.int/updates" target="_blank" rel="noopener">ReliefWeb &rarr;</a>'
+            "</div>"
+        )
     return (
         '<div class="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>EU CIVIL PROTECTION</div>'
@@ -47,6 +102,8 @@ def sidebar_item(e, selected):
         '<div style="font-size:11px;font-weight:600;color:#1a1f36;margin-bottom:2px">' + pl + '</div>'
         '<div style="font-size:10px;color:#888">' + html.escape(e.get("age_str", "")) + ' - '
         + str(round(float(e.get("depth") or 0))) + ' km</div>'
+        '<a class="ercc-link" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" '
+        'target="_blank" rel="noopener" onclick="event.stopPropagation()">EU Civil Protection &rarr;</a>'
         '</div>'
     )
 
@@ -92,13 +149,22 @@ CSS = """\
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:13px;color:#1a1f36}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ea-bar{display:flex;align-items:center;gap:14px;background:#0F2A4A;padding:8px 20px;flex-shrink:0}
+.ea-bar{display:flex;align-items:center;gap:14px;background:#0F2A4A;padding:8px 20px;flex-shrink:0;overflow:hidden}
 .ea-label{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#fff;white-space:nowrap;flex-shrink:0}
 .ea-dot{width:6px;height:6px;border-radius:50%;background:#ff5a5f;flex-shrink:0;animation:pulse 2s infinite}
 .ea-text{flex:1;color:#cfe0f0;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
+.ea-scroll{display:inline-block;animation:ea-marquee 42s linear infinite}
+.ea-track:hover .ea-scroll{animation-play-state:paused}
+.ea-item{color:#cfe0f0;text-decoration:none;font-size:11.5px;font-weight:500}
+.ea-item:hover{color:#fff;text-decoration:underline}
+.ea-sep{color:#4c6b8c;margin:0 14px;font-size:10px}
 .ea-more{flex-shrink:0;color:#8fc1e8;font-size:10.5px;font-weight:600;text-decoration:none;white-space:nowrap}
 .ea-more:hover{color:#fff}
-@media(max-width:680px){.ea-text{display:none}}
+@keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media(max-width:680px){.ea-text{display:none}.ea-more{display:none}}
+.ercc-link{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:600;color:#0F2A4A;text-decoration:none;margin-top:4px}
+.ercc-link:hover{text-decoration:underline}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden}
