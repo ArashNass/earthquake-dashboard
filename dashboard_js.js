@@ -218,6 +218,7 @@ function buildReport(data) {
     + linkBtn('ShakeMap',        'https://earthquake.usgs.gov/earthquakes/eventpage/' + encodeURIComponent(eid) + '/shakemap')
     + linkBtn('PAGER',           'https://earthquake.usgs.gov/earthquakes/eventpage/' + encodeURIComponent(eid) + '/pager')
     + linkBtn('Focal Mechanism', 'https://earthquake.usgs.gov/earthquakes/eventpage/' + encodeURIComponent(eid) + '/moment-tensor')
+    + linkBtn('EU Civil Protection', 'https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps')
     + '</div>';
 
   // ── Aftershock forecast ──

@@ -33,8 +33,6 @@ def sidebar_item(e, selected):
         '<div style="font-size:11px;font-weight:600;color:#1a1f36;margin-bottom:2px">' + pl + '</div>'
         '<div style="font-size:10px;color:#888">' + html.escape(e.get("age_str", "")) + ' - '
         + str(round(float(e.get("depth") or 0))) + ' km</div>'
-        '<a class="ercc-link" href="https://erccportal.jrc.ec.europa.eu/ECHO-Products/Maps" '
-        'target="_blank" rel="noopener" onclick="event.stopPropagation()">EU Civil Protection &rarr;</a>'
         '</div>'
     )
 
@@ -80,8 +78,6 @@ CSS = """\
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#f0f2f8;display:flex;flex-direction:column;height:100vh;overflow:hidden;font-size:13px;color:#1a1f36}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ercc-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#fff;background:#0F2A4A;text-decoration:none;margin-top:6px;padding:3px 8px;border-radius:4px}
-.ercc-link:hover{background:#1a3d63}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden}
