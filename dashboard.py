@@ -12,24 +12,41 @@ HERE = Path(__file__).resolve().parent
 
 ERCC_UPGRADE_JS = """
 (function(){
-  var url = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=12';
-  console.log('[disaster-alerts] fetching', url);
-  fetch(url).then(function(r){
-    console.log('[disaster-alerts] response status', r.status);
+  var eonetUrl = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=12';
+  var usgsUrl  = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson';
+  console.log('[disaster-alerts] fetching', eonetUrl, 'and', usgsUrl);
+
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  var eonetItems = fetch(eonetUrl).then(function(r){
+    console.log('[disaster-alerts] EONET response status', r.status);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   }).then(function(data){
-    console.log('[disaster-alerts] response data', data);
     var events = (data && data.events) || [];
-    if (!events.length) { console.log('[disaster-alerts] no events in response'); return; }
-    var items = events.map(function(ev){
+    return events.map(function(ev){
       var cat = (ev.categories && ev.categories[0] && ev.categories[0].title) || '';
       var title = cat ? (cat + ': ' + ev.title) : ev.title;
-      return { title: (title || '').trim(), link: ev.link || ev.sources && ev.sources[0] && ev.sources[0].url || '' };
+      return { title: (title || '').trim(), link: ev.link || (ev.sources && ev.sources[0] && ev.sources[0].url) || '' };
     }).filter(function(it){ return it.title && it.link; });
-    console.log('[disaster-alerts] parsed items:', items.length);
-    if (!items.length) return;
-    var esc = function(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  }).catch(function(e){ console.log('[disaster-alerts] EONET failed:', e.message || e); return []; });
+
+  var usgsItems = fetch(usgsUrl).then(function(r){
+    console.log('[disaster-alerts] USGS response status', r.status);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).then(function(data){
+    var feats = (data && data.features) || [];
+    return feats.map(function(f){
+      var p = f.properties || {};
+      return { title: 'Earthquake: ' + (p.title || p.place || ''), link: p.url || '' };
+    }).filter(function(it){ return it.title && it.link; });
+  }).catch(function(e){ console.log('[disaster-alerts] USGS failed:', e.message || e); return []; });
+
+  Promise.all([eonetItems, usgsItems]).then(function(results){
+    var items = results[0].concat(results[1]);
+    console.log('[disaster-alerts] combined items:', items.length, '(EONET:', results[0].length, ', USGS:', results[1].length, ')');
+    if (!items.length) { console.log('[disaster-alerts] no items from either source'); return; }
     var chips = items.map(function(it){
       return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
     }).join('');
@@ -39,7 +56,7 @@ ERCC_UPGRADE_JS = """
     scroll.innerHTML = chips + chips;
     bar.classList.add('ea-show');
     console.log('[disaster-alerts] banner shown with', items.length, 'items');
-  }).catch(function(e){ console.log('[disaster-alerts] failed:', e.message || e); });
+  });
 })();
 """
 
@@ -211,7 +228,7 @@ def build(top_events, all_data, now_str):
         '<div class="ea-bar" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
         '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"></div></div>'
-        '  <a class="ea-more" href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">NASA EONET &rarr;</a>'
+        '  <a class="ea-more" href="https://eonet.gsfc.nasa.gov/" target="_blank" rel="noopener">More &rarr;</a>'
         "</div>",
         "<script>" + ERCC_UPGRADE_JS + "</script>",
         '<div class="nav">',
