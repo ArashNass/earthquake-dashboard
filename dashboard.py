@@ -183,6 +183,7 @@ def serialize(data):
         "building":   data.get("building"),
         "news":       data.get("news") or [],
         "narrative":  data.get("narrative"),
+        "data_unavailable": bool(data.get("data_unavailable")),
     }
 
 

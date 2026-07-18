@@ -7,7 +7,7 @@ For each event it shows ShakeMap ground-motion layers on an interactive map,
 aftershock probability forecasts, fault mechanism, historical seismicity,
 weather-driven landslide risk, building stock vulnerability, and multi-source
 news - all fetched live from USGS, GDACS, ReliefWeb, EMSC and Open-Meteo.
-The site rebuilds itself every 6 hours via a scheduled GitHub Action that
+The site rebuilds itself hourly via a scheduled GitHub Action that
 publishes to GitHub Pages; any commit to `main` also deploys automatically.
 
 ## Quick start
@@ -65,7 +65,7 @@ publishes the fresh HTML. Setup once, then it runs itself:
    New repository secret named `NETLIFY_BUILD_HOOK`, paste the URL.
 
 Done. The workflow in `.github/workflows/refresh.yml` now rebuilds the site
-every 6 hours (edit the cron line to change frequency). The timestamp in the
+hourly (edit the cron line to change frequency). The timestamp in the
 page's top-right corner shows when it was last generated.
 
 Optional: to enable the AI narrative, remove `--no-ai` from the build command

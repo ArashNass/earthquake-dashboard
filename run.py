@@ -18,7 +18,7 @@ from datetime import datetime, timezone
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-from settings   import OUTPUT_FILE, REFRESH_MINUTES, QUERY_DAYS, QUERY_LIMIT
+from settings   import OUTPUT_FILE, REFRESH_MINUTES, QUERY_DAYS, QUERY_LIMIT, ALERT_C
 from fetcher    import (fetch_top_events, fetch_detail, enrich,
                         extract_shakemap, extract_aftershock, extract_focal,
                         fetch_historical, fetch_weather, fetch_news, fetch_ai,
@@ -74,8 +74,23 @@ def load_one(stub, no_ai=False):
                     news=results.get("nws") or [],
                     narrative=nar)
     except Exception as ex:
-        print(f"    [WARN] {stub['id']}: {ex} - using stub data")
-        return mock_stub(stub)
+        print(f"    [WARN] {stub['id']}: {ex} - detail feed failed, marking unavailable (no invented data)")
+        return {
+            "ev": {
+                "event_id": stub["id"], "mag": stub["mag"], "place": stub["place"],
+                "lat": stub["lat"], "lon": stub["lon"], "depth": stub["depth"],
+                "depth_note": "", "t_str": stub.get("time_str", ""), "t_age_str": stub.get("age_str", ""),
+                "alert_color": ALERT_C.get(stub.get("alert") or "", ALERT_C[""]),
+                "alert_lbl": stub.get("alert") or "N/A", "pager_alert": "N/A", "pager_color": ALERT_C[""],
+                "mmi": 0, "mmi_label": "--", "mmi_desc": "--", "mmi_effect": "",
+                "mmi_color": "#ccc", "tectonic": "", "energy_mt": 0, "rupture_km": 0,
+                "tsunami": stub.get("tsunami", False), "url": stub.get("url", ""),
+            },
+            "sm": {"mmi_url": "", "pga_url": ""},
+            "aftershock": None, "focal": None, "historical": [],
+            "weather": None, "building": None, "news": [], "narrative": None,
+            "data_unavailable": True, "error_detail": str(ex),
+        }
 
 
 def run(args, open_browser=True):
@@ -153,7 +168,10 @@ def main():
                 print("\nStopped.")
                 sys.exit(0)
     else:
-        run(args)
+        ok = run(args)
+        if not ok:
+            print("  [FATAL] Build failed - not writing output. Previous deployed version, if any, stays live.")
+            sys.exit(1)
 
 
 if __name__ == "__main__":

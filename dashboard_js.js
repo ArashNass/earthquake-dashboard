@@ -122,6 +122,22 @@ function linkBtn(label, url) {
 
 function buildReport(data) {
   var ev  = data.ev;
+
+  if (data.data_unavailable) {
+    return '<div style="padding:16px 0">'
+      + panel('Data unavailable', ''
+        + '<div style="font-size:13px;color:#374151;line-height:1.6;margin-bottom:10px">'
+        + 'The detailed USGS feed for this event did not respond, so no enriched data (ShakeMap, aftershocks, focal mechanism, news, AI summary) could be loaded. '
+        + 'Only the basic summary below is confirmed from the USGS earthquake feed.'
+        + '</div>'
+        + kv('Magnitude', 'M' + (ev.mag || 'n/a'))
+        + kv('Location', esc(ev.place || 'n/a'))
+        + kv('Time', esc(ev.t_str || 'n/a') + (ev.t_age_str ? ' (' + esc(ev.t_age_str) + ')' : ''))
+        + kv('Depth', ev.depth != null ? ev.depth + ' km' : 'n/a')
+        + (ev.url ? '<div style="margin-top:10px">' + linkBtn('View on USGS', ev.url) + '</div>' : ''))
+      + '</div>';
+  }
+
   var sm  = data.sm || {};
   var afs = data.aftershock;
   var foc = data.focal;

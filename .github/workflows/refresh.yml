@@ -1,5 +1,5 @@
 # Builds the dashboard with live USGS data and publishes it to GitHub Pages.
-# Runs every 6 hours, on every push to main, and on demand (Run workflow button).
+# Runs hourly, on every push to main, and on demand (Run workflow button).
 # GitHub Pages hosting and these scheduled builds are free for public repos -
 # no Netlify credits involved.
 
@@ -7,7 +7,7 @@ name: Build and publish dashboard
 
 on:
   schedule:
-    - cron: "0 */6 * * *"   # 00:00, 06:00, 12:00, 18:00 UTC
+    - cron: "0 * * * *"   # every hour, on the hour, UTC
   push:
     branches: [main]
   workflow_dispatch:
