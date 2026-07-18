@@ -318,7 +318,7 @@ def build(top_events, all_data, now_str):
 .site-hd .hd-dd-btn-ic svg{width:100%;height:100%}
 .site-hd .hd-dd-btn svg.hd-chev{width:10px;height:10px;transition:transform .15s;flex-shrink:0;color:#fff}
 .site-hd .hd-dd.open .hd-dd-btn svg.hd-chev{transform:rotate(180deg)}
-.site-hd .hd-dd-menu{position:fixed;background:#1f3d78;border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.4);padding:8px;display:none;gap:2px;z-index:10000}
+.site-hd .hd-dd-menu{position:fixed;background:#1f3d78;border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.4);width:520px;max-width:calc(100vw - 28px);padding:8px;display:none;flex-wrap:wrap;justify-content:center;gap:2px;z-index:10000}
 .site-hd .hd-dd.open .hd-dd-menu{display:flex}
 .site-hd .hd-dd-menu a{display:flex;flex-direction:column;align-items:center;gap:7px;width:96px;padding:12px 8px;border-radius:8px;font-size:11px;color:#fff;font-weight:500;text-align:center;line-height:1.3;opacity:.92}
 .site-hd .hd-dd-menu a:hover{background:rgba(255,255,255,.1);opacity:1}
