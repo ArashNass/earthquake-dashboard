@@ -50,6 +50,9 @@ ERCC_UPGRADE_JS = """
     var scroll = document.getElementById('ea-scroll');
     var bar = document.getElementById('ea-bar');
     var filterEl = document.getElementById('ea-filter');
+    var prevBtn = document.getElementById('ea-prev');
+    var nextBtn = document.getElementById('ea-next');
+    var playBtn = document.getElementById('ea-play');
     if (!scroll || !bar) { console.log('[disaster-alerts] DOM elements not found'); return; }
 
     if (!allItems.length) {
@@ -59,19 +62,57 @@ ERCC_UPGRADE_JS = """
       return;
     }
 
-    function render(filter){
-      var items = filter === 'all' ? allItems : allItems.filter(function(it){ return it.source === filter; });
-      if (!items.length){ scroll.innerHTML = '<span class="ea-item" style="cursor:default">No events for this filter</span>'; return; }
-      var chips = items.map(function(it){
-        return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
-      }).join('');
-      scroll.innerHTML = chips + chips;
-      // Duration scales with content so reading speed stays roughly constant regardless of item count.
-      scroll.style.animationDuration = Math.max(40, items.length * 9) + 's';
+    var items = allItems, idx = 0, timer = null, paused = false;
+    var AUTOPLAY_MS = 6000;
+
+    function render(){
+      if (!items.length){
+        scroll.innerHTML = '<span class="ea-item" style="cursor:default">No events for this filter</span>';
+        return;
+      }
+      if (idx >= items.length) idx = 0;
+      if (idx < 0) idx = items.length - 1;
+      var it = items[idx];
+      scroll.innerHTML = '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>';
     }
 
-    render('all');
-    if (filterEl) filterEl.addEventListener('change', function(){ render(this.value); });
+    function updateNavState(){
+      var enabled = items.length > 1;
+      [prevBtn, nextBtn, playBtn].forEach(function(b){ if (b) b.disabled = !enabled; });
+    }
+
+    function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+    function start(){
+      stop();
+      if (paused || items.length < 2) return;
+      timer = setInterval(function(){ idx++; render(); }, AUTOPLAY_MS);
+    }
+
+    function setPaused(p){
+      paused = p;
+      if (playBtn){
+        playBtn.innerHTML = paused ? '&#9654;' : '&#10074;&#10074;';
+        playBtn.title = paused ? 'Play' : 'Pause';
+        playBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause');
+      }
+      if (paused) stop(); else start();
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', function(){ idx--; render(); start(); });
+    if (nextBtn) nextBtn.addEventListener('click', function(){ idx++; render(); start(); });
+    if (playBtn) playBtn.addEventListener('click', function(){ setPaused(!paused); });
+
+    if (filterEl) filterEl.addEventListener('change', function(){
+      items = this.value === 'all' ? allItems : allItems.filter(function(it){ return it.source === this.value; }, this);
+      idx = 0;
+      render();
+      updateNavState();
+      start();
+    });
+
+    render();
+    updateNavState();
+    start();
     console.log('[disaster-alerts] banner shown with', allItems.length, 'items');
   });
 })();
@@ -146,22 +187,23 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
 .app-shell{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .nav{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e2e6f0;padding:11px 20px;flex-shrink:0;box-shadow:0 1px 6px rgba(0,0,0,.06)}
 .nav-title{font-size:15px;font-weight:700}.nav-sub{font-size:11px;color:#64748b}
-.ea-bar{display:none;align-items:center;gap:16px;background:#fef2f2;border-top:1px solid #fecaca;border-bottom:1px solid #fecaca;padding:11px 22px;flex-shrink:0;overflow:hidden;margin-top:14px}
+.ea-bar{display:none;align-items:center;gap:10px;background:#fef2f2;border-top:1px solid #fecaca;border-bottom:1px solid #fecaca;padding:11px 22px;flex-shrink:0;overflow:hidden;margin-top:14px}
 .ea-bar.ea-show{display:flex}
 .ea-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.8px;color:#fff;white-space:nowrap;flex-shrink:0;background:#dc2626;padding:5px 12px;border-radius:4px}
 .ea-dot{width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0;animation:pulse 2s infinite}
-.ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
-.ea-scroll{display:inline-block;animation:ea-marquee 140s linear infinite}
-.ea-track:hover .ea-scroll{animation-play-state:paused}
+.ea-nav,.ea-play{flex-shrink:0;width:22px;height:22px;border-radius:50%;border:1px solid #fca5a5;background:#fff;color:#b91c1c;font-size:13px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:.15s}
+.ea-nav:hover,.ea-play:hover{background:#fee2e2;border-color:#dc2626}
+.ea-nav:disabled,.ea-play:disabled{opacity:.35;cursor:default;pointer-events:none}
+.ea-play{font-size:10px}
+.ea-track{flex:1;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 12px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 12px,#000 calc(100% - 12px),transparent)}
+.ea-scroll{display:inline-block;transition:opacity .2s}
 .ea-item{color:#7f1d1d;text-decoration:none;font-size:14px;font-weight:600;padding:0 4px}
 .ea-item:hover{color:#dc2626;text-decoration:underline}
-.ea-sep{color:#e6a5a5;margin:0 26px;font-size:12px}
 .ea-more{flex-shrink:0;color:#b91c1c;font-size:10.5px;font-weight:700;text-decoration:none;white-space:nowrap}
 .ea-more:hover{color:#7f1d1d}
 .ea-filter{flex-shrink:0;background:#fff;color:#7f1d1d;border:1px solid #fca5a5;border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
 .ea-filter:hover{border-color:#dc2626}
 .ea-filter option{background:#fff;color:#7f1d1d}
-@keyframes ea-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @media(max-width:680px){.ea-filter{font-size:9px;padding:3px 6px}.ea-item{font-size:12px}.ea-label{font-size:10px;padding:4px 8px}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
@@ -270,7 +312,7 @@ def build(top_events, all_data, now_str):
 .site-hd .hd-ic:hover{opacity:1}
 .site-hd .hd-ic svg{width:17px;height:17px}
 @media(max-width:680px){.site-hd .hd-in{padding:11px 14px}.site-hd .hd-links{gap:12px}.site-hd a,.site-hd .hd-dd-btn{font-size:11.5px}.site-hd .hd-sep{display:none}.site-hd .hd-dd-menu{padding:6px;flex-wrap:wrap;max-width:calc(100vw - 28px)}.site-hd .hd-dd-menu a{width:84px}}
-</style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><div class="hd-dd" id="hdDd"><button class="hd-dd-btn" id="hdDdBtn" type="button">Tools<svg class="hd-chev" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="hd-dd-menu"><a href="/earthquake-rupture/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></span>Fault Mechanism</a><a href="/world-faults/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 2.6 4 5.6 4 9s-1.3 6.4-4 9c-2.7-2.6-4-5.6-4-9s1.3-6.4 4-9z"/></svg></span>Global Faults & Live Earthquakes</a><a href="/earthquake-dashboard/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14 2.5-7h4"/></svg></span>Rapid Earthquake Response</a><a href="/rc-section-designer/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><rect x="4.5" y="5" width="15" height="14" rx="1.5"/><circle cx="9" cy="9.5" r="1.1" fill="#fff" stroke="none"/><circle cx="15" cy="9.5" r="1.1" fill="#fff" stroke="none"/><circle cx="9" cy="14.5" r="1.1" fill="#fff" stroke="none"/><circle cx="15" cy="14.5" r="1.1" fill="#fff" stroke="none"/></svg></span>Reinforced Concrete Section Designer</a><a href="/hazus/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M5 18V9l4-4 4 4v9M13 18v-6l3-3 3 3v6"/></svg></span>Vulnerability Explorer</a></div></div><span class="hd-sep">|</span><a href="/contact/">Contact</a><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div>
+</style><div class="hd-in"><a class="hd-home" href="/">Home</a><nav class="hd-links"><div class="hd-dd" id="hdDd"><button class="hd-dd-btn" id="hdDdBtn" type="button">Tools<svg class="hd-chev" viewBox="0 0 12 12" fill="none"><path d="M2.5 4.5L6 8l3.5-3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><div class="hd-dd-menu"><a href="/earthquake-rupture/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg></span>Fault Mechanism</a><a href="/world-faults/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.7 2.6 4 5.6 4 9s-1.3 6.4-4 9c-2.7-2.6-4-5.6-4-9s1.3-6.4 4-9z"/></svg></span>Global Faults & Live Earthquakes</a><a class="hd-on" href="/earthquake-dashboard/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14 2.5-7h4"/></svg></span>Rapid Earthquake Response</a><a href="/rc-section-designer/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9"><rect x="4.5" y="5" width="15" height="14" rx="1.5"/><circle cx="9" cy="9.5" r="1.1" fill="#fff" stroke="none"/><circle cx="15" cy="9.5" r="1.1" fill="#fff" stroke="none"/><circle cx="9" cy="14.5" r="1.1" fill="#fff" stroke="none"/><circle cx="15" cy="14.5" r="1.1" fill="#fff" stroke="none"/></svg></span>Reinforced Concrete Section Designer</a><a href="/hazus/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18M5 18V9l4-4 4 4v9M13 18v-6l3-3 3 3v6"/></svg></span>Vulnerability Explorer</a><a href="/modal-analysis/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14c2-6 4-6 5 0s3 6 5 0 3-6 5 0 3 6 5 0"/></svg></span>Modal Analysis Calculator</a><a href="/building-response/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 21v-4h6v4"/><path d="M8 7h.01M12 7h.01M16 7h.01M8 11h.01M12 11h.01M16 11h.01"/></svg></span>Building Response Lab</a></div></div><span class="hd-sep">|</span><a href="/contact/">Contact</a><span class="hd-sep">|</span><a class="hd-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="hd-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div>
 <script>
 (function(){
   var dd = document.getElementById('hdDd');
@@ -298,6 +340,9 @@ def build(top_events, all_data, now_str):
 </header>""",
         '<div class="ea-bar ea-show" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
+        '  <button class="ea-nav" id="ea-prev" type="button" title="Previous alert" aria-label="Previous alert" disabled>&#8249;</button>'
+        '  <button class="ea-play" id="ea-play" type="button" title="Pause" aria-label="Pause" disabled>&#10074;&#10074;</button>'
+        '  <button class="ea-nav" id="ea-next" type="button" title="Next alert" aria-label="Next alert" disabled>&#8250;</button>'
         '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#b91c1c">Loading latest alerts&hellip;</span></div></div>'
         '  <select class="ea-filter" id="ea-filter">'
         '    <option value="all">All Sources</option>'
