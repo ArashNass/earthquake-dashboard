@@ -296,18 +296,6 @@ def build(top_events, all_data, now_str):
 })();
 </script>
 </header>""",
-        """<footer class="site-ft"><style>
-.site-ft{background:#0f2350;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;font-family:Inter,'Segoe UI',system-ui,sans-serif}
-.site-ft .ft-in{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:8px 24px}
-.site-ft .ft-copy{font-size:11.5px;color:#fff}
-.site-ft .ft-links{display:flex;align-items:center;gap:16px}
-.site-ft .ft-links a{text-decoration:none;color:#fff;font-size:11.5px;font-weight:500;transition:color .15s;opacity:.85}
-.site-ft .ft-links a:hover{opacity:1}
-.site-ft .ft-ic{display:inline-flex;color:#fff;opacity:.85}
-.site-ft .ft-ic:hover{opacity:1}
-.site-ft .ft-ic svg{width:15px;height:15px}
-@media(max-width:520px){.site-ft .ft-in{justify-content:center;text-align:center}}
-</style><div class="ft-in"><span class="ft-copy">&copy; 2026 Arash Nassirpour. All rights reserved.</span><nav class="ft-links"><a href="/contact/">Contact</a><a class="ft-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="ft-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div></footer>""",
         '<div class="ea-bar ea-show" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
         '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#b91c1c">Loading latest alerts&hellip;</span></div></div>'
@@ -335,6 +323,21 @@ def build(top_events, all_data, now_str):
         "  </div>",
         '  <div class="rp"><div id="rp-inner"></div></div>',
         "</div>",
+        # Shared site footer - keep identical across all arashnassirpour.com repos.
+        # Placed here, as the last item inside .app-shell (flex-shrink:0), so it
+        # sits at the bottom of the fixed-height app view instead of under the header.
+        """<footer class="site-ft"><style>
+.site-ft{background:#0f2350;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;font-family:Inter,'Segoe UI',system-ui,sans-serif}
+.site-ft .ft-in{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:8px 24px}
+.site-ft .ft-copy{font-size:12.5px;color:#fff}
+.site-ft .ft-links{display:flex;align-items:center;gap:16px}
+.site-ft .ft-links a{text-decoration:none;color:#fff;font-size:12.5px;font-weight:500;transition:color .15s;opacity:.85}
+.site-ft .ft-links a:hover{opacity:1}
+.site-ft .ft-ic{display:inline-flex;color:#fff;opacity:.85}
+.site-ft .ft-ic:hover{opacity:1}
+.site-ft .ft-ic svg{width:17px;height:17px}
+@media(max-width:520px){.site-ft .ft-in{justify-content:center;text-align:center}}
+</style><div class="ft-in"><span class="ft-copy">&copy; 2026 Arash Nassirpour. All rights reserved.</span><nav class="ft-links"><a href="/contact/">Contact</a><a class="ft-ic" href="https://www.youtube.com/@Structural.Analysis" target="_blank" rel="noopener" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5" stroke="currentColor" stroke-width="1.8"/><path d="M10.3 9.4v5.2l4.6-2.6-4.6-2.6z" fill="currentColor"/></svg></a><a class="ft-ic" href="https://www.linkedin.com/in/arashnassirpour/" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 10.5V17M8 7.2v.1M12 17v-3.7c0-1.3.9-2.3 2.2-2.3 1.3 0 2.3 1 2.3 2.3V17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></a></nav></div></footer>""",
         "</div>",
         '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>',
         "<script>" + js + "</script>",
