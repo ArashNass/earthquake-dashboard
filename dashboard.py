@@ -319,12 +319,12 @@ def build(top_events, all_data, now_str):
 .site-hd .hd-dd-btn-ic svg{width:100%;height:100%}
 .site-hd .hd-dd-btn svg.hd-chev{width:10px;height:10px;transition:transform .15s;flex-shrink:0;color:#fff}
 .site-hd .hd-dd.open .hd-dd-btn svg.hd-chev{transform:rotate(180deg)}
-.site-hd .hd-dd-menu{position:fixed;background:#1f3d78;border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.4);width:396px;max-width:calc(100vw - 28px);padding:6px;display:none;grid-template-columns:repeat(3,1fr);gap:2px;z-index:10000}
+.site-hd .hd-dd-menu{position:fixed;background:#1f3d78;border:1px solid rgba(255,255,255,.12);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.4);width:432px;max-width:calc(100vw - 28px);padding:8px;display:none;grid-template-columns:repeat(3,1fr);gap:3px;z-index:10000}
 .site-hd .hd-dd.open .hd-dd-menu{display:grid}
-.site-hd .hd-dd-menu a{display:flex;flex-direction:row;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;font-size:11px;color:#fff;font-weight:500;text-align:left;line-height:1.25;opacity:.92}.site-hd .hd-dd-cat{grid-column:1/-1;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);padding:8px 8px 2px;margin-top:2px}.site-hd .hd-dd-cat:first-child{margin-top:0}
+.site-hd .hd-dd-menu a{display:flex;flex-direction:row;align-items:center;gap:9px;padding:10px 12px;border-radius:8px;font-size:12px;color:#fff;font-weight:500;text-align:left;line-height:1.3;opacity:.92}.site-hd .hd-dd-cat{grid-column:1/-1;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(255,255,255,.5);padding:10px 10px 4px;margin-top:6px;border-top:1px solid rgba(255,255,255,.12)}.site-hd .hd-dd-cat:first-child{margin-top:0;padding-top:2px;border-top:0}
 .site-hd .hd-dd-menu a:hover{background:rgba(255,255,255,.1);opacity:1}
 .site-hd .hd-dd-menu a.hd-on{background:rgba(255,255,255,.16);opacity:1}
-.site-hd .hd-dd-menu a .hd-dd-ic{width:15px;height:15px;flex-shrink:0}
+.site-hd .hd-dd-menu a .hd-dd-ic{width:17px;height:17px;flex-shrink:0}
 .site-hd .hd-dd-menu a .hd-dd-ic svg{width:100%;height:100%}
 .site-hd .hd-sep{color:rgba(255,255,255,.35);font-size:12px;user-select:none}
 .site-hd .hd-ic{display:inline-flex;color:#fff;opacity:.9}
