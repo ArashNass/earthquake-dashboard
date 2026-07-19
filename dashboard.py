@@ -276,6 +276,7 @@ def build(top_events, all_data, now_str):
         '<html lang="en"><head>',
         '<meta charset="UTF-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
+        '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Crect%20width%3D%2724%27%20height%3D%2724%27%20rx%3D%275%27%20fill%3D%27%230f2350%27%2F%3E%3Cpath%20d%3D%27M3%2012h4l2.5-7%205%2014%202.5-7h4%27%20fill%3D%27none%27%20stroke%3D%27white%27%20stroke-width%3D%271.9%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E">',
         "<title>Rapid Earthquake Response - Live Dashboard with ShakeMaps and Aftershock Forecasts</title>",
         '<meta name="description" content="Rapid Earthquake Response: the largest earthquakes of the past 30 days with ShakeMap ground motion, aftershock probabilities, fault mechanisms and impact intelligence, plus live global disaster alerts." />',
         '<link rel="canonical" href="https://arashnassirpour.com/earthquake-dashboard/" />',
