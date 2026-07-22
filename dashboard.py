@@ -277,13 +277,13 @@ def build(top_events, all_data, now_str):
         '<meta charset="UTF-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
         '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Crect%20width%3D%2724%27%20height%3D%2724%27%20rx%3D%275%27%20fill%3D%27%230f2350%27%2F%3E%3Cpath%20d%3D%27M3%2012h4l2.5-7%205%2014%202.5-7h4%27%20fill%3D%27none%27%20stroke%3D%27white%27%20stroke-width%3D%271.9%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E">',
-        "<title>Rapid Earthquake Response - Live Dashboard with ShakeMaps and Aftershock Forecasts</title>",
-        '<meta name="description" content="Rapid Earthquake Response: the largest earthquakes of the past 30 days with ShakeMap ground motion, aftershock probabilities, fault mechanisms and impact intelligence, plus live global disaster alerts." />',
+        "<title>Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks | Arash Nassirpour</title>",
+        '<meta name="description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms, impact intelligence and global disaster alerts." />',
         '<link rel="canonical" href="https://arashnassirpour.com/earthquake-dashboard/" />',
-        '<meta property="og:title" content="Rapid Earthquake Response - Live Dashboard" />',
-        '<meta property="og:description" content="ShakeMaps, aftershock forecasts and impact intelligence for the largest recent earthquakes, with live global disaster alerts." />',
+        '<meta property="og:title" content="Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks" />',
+        '<meta property="og:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms and impact intelligence." />',
         '<meta property="og:url" content="https://arashnassirpour.com/earthquake-dashboard/" />',
-        '<meta property="og:type" content="website" />',
+        '<meta property="og:type" content="website" />\n        '<meta property="og:site_name" content="Arash Nassirpour" />',\n        '<meta name="author" content="Arash Nassirpour" />',\n        '<meta name="robots" content="index, follow, max-image-preview:large" />',\n        '<meta name="twitter:card" content="summary" />',\n        '<meta name="twitter:title" content="Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks" />',\n        '<meta name="twitter:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts and impact intelligence." />',',
         '<script type="application/ld+json">'
         '{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Rapid Earthquake Response",'
         '"applicationCategory":"EngineeringApplication","operatingSystem":"Web",'
@@ -377,7 +377,7 @@ def build(top_events, all_data, now_str):
         "<script>" + ERCC_UPGRADE_JS + "</script>",
         '<div class="nav">',
         "  <div>",
-        '    <div class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</div>',
+        '    <h1 class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</h1>',
         "  </div>",
         '  <div style="font-size:11px;color:#64748b;text-align:right"><span style="font-weight:600;color:#1a1f36">Last update:</span> ' + html.escape(now_str) + "</div>",
         "</div>",
