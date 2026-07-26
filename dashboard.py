@@ -285,11 +285,13 @@ def build(top_events, all_data, now_str):
         '<meta property="og:url" content="https://arashnassirpour.com/earthquake-dashboard/" />',
         '<meta property="og:type" content="website" />',
         '<meta property="og:site_name" content="Arash Nassirpour" />',
+        '<meta property="og:image" content="https://arashnassirpour.com/earthquake-dashboard/og-image.png" />',
         '<meta name="author" content="Arash Nassirpour" />',
         '<meta name="robots" content="index, follow, max-image-preview:large" />',
-        '<meta name="twitter:card" content="summary" />',
+        '<meta name="twitter:card" content="summary_large_image" />',
         '<meta name="twitter:title" content="Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks" />',
         '<meta name="twitter:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts and impact intelligence." />',
+        '<meta name="twitter:image" content="https://arashnassirpour.com/earthquake-dashboard/og-image.png" />',
         '<script type="application/ld+json">'
         '{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Rapid Earthquake Response",'
         '"applicationCategory":"EngineeringApplication","operatingSystem":"Web",'

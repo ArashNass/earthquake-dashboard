@@ -34,7 +34,7 @@ jobs:
       - name: Build dashboard with live data
         run: python run.py --no-open --no-ai
       - name: Stage site
-        run: mkdir -p dist && cp earthquake_brief.html dist/index.html
+        run: mkdir -p dist && cp earthquake_brief.html dist/index.html && cp og-image.png dist/og-image.png
       - uses: actions/configure-pages@v5
         with:
           enablement: true
