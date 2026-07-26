@@ -14,22 +14,17 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
-          s=p.read_text(encoding='utf-8')
+          p=Path('dashboard.py'); s=p.read_text(encoding='utf-8')
           if 'Slope Seismic Vulnerability' in s: raise SystemExit(0)
           item='<a href="/slope-seismic-vulnerability/"><span class="hd-dd-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 19h18"/><path d="M5 19L14 6l5 13"/><path d="M9.5 12.5l8.5 1"/></svg></span><span class="hd-dd-lbl">Slope Seismic Vulnerability</span></a>'
           marker='<div class="hd-dd-cat">Structural Analysis</div>'
-          if marker in s: s=s.replace(marker,item+marker,1)
-          else:
-              marker='<span class="hd-dd-lbl">Hazard Sequence Simulator</span></a>'
-              if marker not in s: raise SystemExit('Header insertion point not found')
-              s=s.replace(marker,marker+item,1)
-          p.write_text(s,encoding='utf-8')
+          if marker not in s: raise SystemExit('Header insertion point not found')
+          p.write_text(s.replace(marker,item+marker,1),encoding='utf-8')
           PY
       - name: Commit
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add dashboard.py
           git diff --cached --quiet || git commit -m "Add slope vulnerability to tools menu"
           git push
