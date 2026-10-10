@@ -222,7 +222,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
 .ea-filter{flex-shrink:0;background:#fff;color:#7f1d1d;border:1px solid #fca5a5;border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
 .ea-filter:hover{border-color:#dc2626}
 .ea-filter option{background:#fff;color:#7f1d1d}
-@media(max-width:680px){.ea-filter{font-size:9px;padding:3px 6px}.ea-item{font-size:12px}.ea-label{font-size:10px;padding:4px 8px}}
+@media(max-width:680px){.ea-filter{font-size:9px;padding:3px 6px}.ea-item{font-size:12px}.ea-label{font-size:10px;padding:4px 8px}
+  .ea-bar{flex-wrap:wrap;padding:10px 14px;gap:8px}
+  .ea-label{order:1}
+  .ea-filter{order:2;margin-left:auto;max-width:140px}
+  .ea-track{order:3;flex:1 1 180px;min-width:0}
+  .ea-controls{order:4}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden;min-height:0}
@@ -235,7 +240,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
 #rp-inner{padding:16px;max-width:1060px;margin:0 auto}
 @media(max-width:760px){
   body{overflow:auto;height:auto}
-  .body{flex-direction:column;overflow:visible}
+  .app-shell{height:auto;min-height:100vh;overflow:visible}
+  .body{flex-direction:column;flex:none;overflow:visible}
   .sidebar{width:100%;border-right:none;border-bottom:1px solid #e2e6f0}
   .sb-list{display:flex;overflow-x:auto;overflow-y:hidden}
   .ev-item{min-width:200px;border-right:1px solid #eee}
