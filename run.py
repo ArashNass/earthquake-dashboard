@@ -113,7 +113,8 @@ def run(args, open_browser=True):
             print("  [ERROR] No events returned.")
             return False
 
-        print(f"  Found {len(top_events)}. Largest: M{top_events[0]['mag']} {top_events[0]['place']}")
+        largest = max(top_events, key=lambda e: e["mag"])
+        print(f"  Found {len(top_events)}. Largest: M{largest['mag']} {largest['place']}")
 
         all_data = [None] * len(top_events)
 

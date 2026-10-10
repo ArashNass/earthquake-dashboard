@@ -89,7 +89,12 @@ def fetch_top_events(days=QUERY_DAYS, limit=QUERY_LIMIT, min_mag=QUERY_MIN_MAG):
             "depth":        float(c[2]),
             "has_shakemap": bool((p.get("products") or {}).get("shakemap")),
             "url":          p.get("url", ""),
+            "_time":        t,
         })
+    # USGS picks the largest events; show them newest first.
+    events.sort(key=lambda e: e["_time"], reverse=True)
+    for e in events:
+        del e["_time"]
     return events
 
 
