@@ -247,6 +247,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
   .ev-item{min-width:200px;border-right:1px solid #eee}
   .rp{overflow:visible}
   #leaflet-map{height:340px!important}
+  /* the three headline numbers share one row instead of three tall cards */
+  .mbox-row{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+  .mbox{padding:9px 4px!important;border-radius:8px!important}
+  .mbox-l{font-size:8px!important;letter-spacing:.3px!important;margin-bottom:4px!important;overflow-wrap:anywhere}
+  .mbox-v{font-size:20px!important}
+  .mbox-s{font-size:9.5px!important;margin-top:3px!important;line-height:1.25;overflow-wrap:anywhere}
 }
 """
 

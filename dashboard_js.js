@@ -92,10 +92,10 @@ function loadEvent(id) {
 // ── HTML building blocks ──────────────────────────────────────────────────────
 
 function mbox(label, val, sub, color) {
-  return '<div style="background:rgba(255,255,255,.85);border:1px solid ' + (color || '#e2e6f0') + '40;border-radius:10px;padding:14px 16px;text-align:center">'
-    + '<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">' + label + '</div>'
-    + '<div style="font-size:26px;font-weight:900;color:' + (color || '#1a1f36') + ';line-height:1">' + val + '</div>'
-    + (sub ? '<div style="font-size:11px;color:#64748b;margin-top:5px">' + sub + '</div>' : '')
+  return '<div class="mbox" style="background:rgba(255,255,255,.85);border:1px solid ' + (color || '#e2e6f0') + '40;border-radius:10px;padding:14px 16px;text-align:center">'
+    + '<div class="mbox-l" style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">' + label + '</div>'
+    + '<div class="mbox-v" style="font-size:26px;font-weight:900;color:' + (color || '#1a1f36') + ';line-height:1">' + val + '</div>'
+    + (sub ? '<div class="mbox-s" style="font-size:11px;color:#64748b;margin-top:5px">' + sub + '</div>' : '')
     + '</div>';
 }
 
@@ -177,7 +177,7 @@ function buildReport(data) {
     + '<span style="padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;text-transform:uppercase;background:' + ac + ';color:#fff">' + esc(ev.alert_lbl) + '</span>'
     + (pagerTxt ? '<span style="font-size:11px;color:#64748b;margin-left:8px">' + esc(pagerTxt) + '</span>' : '')
     + '</div></div>'
-    + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">'
+    + '<div class="mbox-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">'
     + mbox('MMI Intensity', mmi ? mmi.toFixed(1) : '--', esc(mmiDesc), mc)
     + mbox('Peak Ground Accel.', pga ? pgaF.g : '--', pga ? pgaF.ms2 + ' \u2022 ' + pgaL : '', pgaC)
     + mbox('Depth', dep.toFixed(0) + ' km', esc(dn), '#1565c0')
