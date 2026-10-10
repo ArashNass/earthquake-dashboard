@@ -168,10 +168,10 @@ function buildReport(data) {
     (ev.tsunami ? '<div style="background:#4a148c;color:#fff;border-radius:10px;padding:8px 16px;margin-bottom:10px;font-weight:700;font-size:12px">TSUNAMI WARNING</div>' : '')
     + (nar ? '<div style="background:#f0f4ff;border:1px solid #c7d7f5;border-radius:12px;padding:14px 18px;margin-bottom:12px;font-size:13px;line-height:1.75;color:#1e2d5a">'
            + '<div style="font-size:9px;font-weight:700;color:#1565c0;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">AI Assessment</div>' + esc(nar) + '</div>' : '')
-    + '<div style="border-left:5px solid ' + ac + ';padding:20px 22px;margin-bottom:12px;background:linear-gradient(135deg,' + ac + '0a,transparent);border:1px solid ' + ac + '30;border-radius:12px">'
-    + '<div style="display:flex;align-items:flex-start;gap:20px;margin-bottom:16px;flex-wrap:wrap">'
-    + '<div style="font-size:72px;font-weight:900;line-height:1;color:' + ac + ';letter-spacing:-2px">M' + mag.toFixed(1) + '</div>'
-    + '<div style="flex:1;min-width:220px">'
+    + '<div class="hero-card" style="border-left:5px solid ' + ac + ';padding:20px 22px;margin-bottom:12px;background:linear-gradient(135deg,' + ac + '0a,transparent);border:1px solid ' + ac + '30;border-radius:12px">'
+    + '<div class="hero-row" style="display:flex;align-items:flex-start;gap:20px;margin-bottom:16px;flex-wrap:wrap">'
+    + '<div class="hero-mag" style="font-size:72px;font-weight:900;line-height:1;color:' + ac + ';letter-spacing:-2px">M' + mag.toFixed(1) + '</div>'
+    + '<div class="hero-main" style="flex:1;min-width:220px">'
     + '<div style="font-size:20px;font-weight:700;margin-bottom:3px">' + esc(ev.place) + '</div>'
     + '<div style="font-size:11px;color:#64748b;margin-bottom:10px">' + esc(ev.t_str) + ' \u2022 ' + esc(ev.t_age_str) + '</div>'
     + '<span style="padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;text-transform:uppercase;background:' + ac + ';color:#fff">' + esc(ev.alert_lbl) + '</span>'

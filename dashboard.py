@@ -253,6 +253,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
   .mbox-l{font-size:8px!important;letter-spacing:.3px!important;margin-bottom:4px!important;overflow-wrap:anywhere}
   .mbox-v{font-size:20px!important}
   .mbox-s{font-size:9.5px!important;margin-top:3px!important;line-height:1.25;overflow-wrap:anywhere}
+  /* smaller magnitude; it sits beside the place name when there is room, otherwise above it */
+  .hero-card{padding:16px!important}
+  .hero-row{gap:4px 12px!important;margin-bottom:12px!important}
+  .hero-mag{font-size:54px!important;letter-spacing:-1.5px!important}
+  .hero-main{min-width:150px!important}
 }
 """
 
