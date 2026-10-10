@@ -194,7 +194,9 @@ function buildReport(data) {
     + '<button id="btn-sat" data-layer="sat" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:700;background:#e8eaf0;color:#555">Satellite</button>'
     + '</div>'
     + '<div id="leaflet-map" style="width:100%;height:500px;background:#eef1f6"></div>'
-    + '</div></div>';
+    + '</div>'
+    + ((typeof L !== 'undefined' && L.Browser.mobile) ? '<div style="font-size:11px;color:#64748b;margin-top:6px">Pinch or use + / - to zoom the map; scroll the page with one finger.</div>' : '')
+    + '</div>';
 
   // ── Intelligence and News ──
   var newsH = '';
@@ -357,17 +359,18 @@ function initMap() {
   if (_map) { _map.remove(); _map = null; }
   _active = null; _pga = null; _mmi = null; _base = null; _sat = null; _satOn = false;
 
-  _map = L.map('leaflet-map', { zoomControl: false }).setView([lat, lon], 7);
+  // touch devices: one-finger drag scrolls the page (the map is a big share of a phone screen); pinch and +/- still work
+  _map = L.map('leaflet-map', { zoomControl: false, dragging: !L.Browser.mobile }).setView([lat, lon], 7);
   L.control.zoom({ position: 'bottomright' }).addTo(_map);
   _base = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
     { attribution: 'OpenStreetMap contributors', maxZoom: 19 });
   _base.addTo(_map);
 
   L.circle([lat, lon], { radius: 5000, color: color, fillColor: color, fillOpacity: .4, weight: 3, interactive: false }).addTo(_map);
-  L.circleMarker([lat, lon], { radius: 10, color: '#fff', fillColor: color, fillOpacity: 1, weight: 2.5 })
+  var epiMarker = L.circleMarker([lat, lon], { radius: 10, color: '#fff', fillColor: color, fillOpacity: 1, weight: 2.5 })
     .addTo(_map)
-    .bindPopup('<b>Epicentre</b><br>M' + Number(ev.mag).toFixed(1) + ' - ' + esc(ev.place) + '<br>' + esc(ev.t_str))
-    .openPopup();
+    .bindPopup('<b>Epicentre</b><br>M' + Number(ev.mag).toFixed(1) + ' - ' + esc(ev.place) + '<br>' + esc(ev.t_str));
+  if (!window.matchMedia('(max-width:760px)').matches) epiMarker.openPopup();   // on phones it covers the shaking contours; tap the marker instead
 
   ['btn-pga', 'btn-mmi', 'btn-sat'].forEach(function (id) {
     var btn = document.getElementById(id);

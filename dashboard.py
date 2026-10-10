@@ -246,6 +246,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
   .sb-list{display:flex;overflow-x:auto;overflow-y:hidden}
   .ev-item{min-width:200px;border-right:1px solid #eee}
   .rp{overflow:visible}
+  #leaflet-map{height:340px!important}
 }
 """
 
