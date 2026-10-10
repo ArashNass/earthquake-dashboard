@@ -2,7 +2,7 @@
 
 **Live dashboard:** https://arashnassirpour.com/earthquake-dashboard/
 
-A self-updating briefing page for the largest earthquakes of the last 30 days. It combines ShakeMap ground-motion layers, aftershock forecasts, fault mechanisms, historical seismicity, weather-driven landslide context, building-stock vulnerability, disaster alerts, and multi-source news.
+A self-updating briefing page for the largest earthquakes of the last 90 days. It combines ShakeMap ground-motion layers, aftershock forecasts, fault mechanisms, historical seismicity, weather-driven landslide context, building-stock vulnerability, disaster alerts, and multi-source news.
 
 ## Data sources
 

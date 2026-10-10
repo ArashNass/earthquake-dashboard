@@ -391,7 +391,7 @@ def build(top_events, all_data, now_str):
         "</div>",
         '<div class="body">',
         '  <div class="sidebar">',
-        '    <div class="sb-hdr"><div class="sb-title">Top Events - Last 30 Days</div></div>',
+        '    <div class="sb-hdr"><div class="sb-title">Top Events - Last 90 Days</div></div>',
         '    <div class="sb-legend">',
         '      <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2e7d32;margin-right:3px;vertical-align:middle"></span>ShakeMap</span>',
         '      <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#ccc;margin-right:3px;vertical-align:middle"></span>Pending</span>',

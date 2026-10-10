@@ -11,7 +11,7 @@ HTTP_RETRIES    = 2                    # automatic retries on connection errors 
 USER_AGENT      = "EQDashboard/2.0 (reinsurance-research)"
 
 # Event query
-QUERY_DAYS      = 30                   # look-back window
+QUERY_DAYS      = 90                   # look-back window
 QUERY_LIMIT     = 5                    # number of events shown
 QUERY_MIN_MAG   = 5.5
 
