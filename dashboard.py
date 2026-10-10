@@ -255,9 +255,13 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
   .mbox-s{font-size:9.5px!important;margin-top:3px!important;line-height:1.25;overflow-wrap:anywhere}
   /* smaller magnitude; it sits beside the place name when there is room, otherwise above it */
   .hero-card{padding:16px!important}
-  .hero-row{gap:4px 12px!important;margin-bottom:12px!important}
+  .hero-row{gap:4px 8px!important;margin-bottom:12px!important}
   .hero-mag{font-size:54px!important;letter-spacing:-1.5px!important}
   .hero-main{min-width:150px!important}
+  /* badge + alert text stay on one line; if a screen is too narrow they wrap as a pair, never mid-sentence */
+  .hero-alert{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+  .hero-badge{font-size:10px!important;padding:3px 9px!important}
+  .hero-pager{font-size:10px!important;margin-left:0!important;white-space:nowrap}
 }
 """
 

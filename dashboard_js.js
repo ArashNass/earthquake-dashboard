@@ -174,8 +174,10 @@ function buildReport(data) {
     + '<div class="hero-main" style="flex:1;min-width:220px">'
     + '<div style="font-size:20px;font-weight:700;margin-bottom:3px">' + esc(ev.place) + '</div>'
     + '<div style="font-size:11px;color:#64748b;margin-bottom:10px">' + esc(ev.t_str) + ' \u2022 ' + esc(ev.t_age_str) + '</div>'
-    + '<span style="padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;text-transform:uppercase;background:' + ac + ';color:#fff">' + esc(ev.alert_lbl) + '</span>'
-    + (pagerTxt ? '<span style="font-size:11px;color:#64748b;margin-left:8px">' + esc(pagerTxt) + '</span>' : '')
+    + '<div class="hero-alert">'
+    + '<span class="hero-badge" style="padding:4px 12px;border-radius:5px;font-size:11px;font-weight:700;text-transform:uppercase;background:' + ac + ';color:#fff">' + esc(ev.alert_lbl) + '</span>'
+    + (pagerTxt ? '<span class="hero-pager" style="font-size:11px;color:#64748b;margin-left:8px">' + esc(pagerTxt) + '</span>' : '')
+    + '</div>'
     + '</div></div>'
     + '<div class="mbox-row" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">'
     + mbox('MMI Intensity', mmi ? mmi.toFixed(1) : '--', esc(mmiDesc), mc)
