@@ -323,7 +323,7 @@ function buildReport(data) {
   }
 
   // ── Assemble ──
-  var g2 = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin-bottom:12px';
+  var g2 = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px;margin-bottom:12px';
   return heroH + mapH
     + newsPanel
     + '<div style="' + g2 + '">' + panel('Event Parameters', paramsH) + panel('Aftershock Forecast', afsH) + '</div>'
