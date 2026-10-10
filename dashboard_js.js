@@ -54,6 +54,7 @@ function probColor(p) { var v = parseFloat(String(p).replace(/[%>~]/g, '')); ret
 function setActive(id) {
   document.querySelectorAll('.ev-item').forEach(function (el) {
     var on = el.dataset.id === id;
+    el.classList.toggle('ev-sel', on);
     el.style.background = on ? '#e8f0fe' : '';
     el.style.borderLeft = on ? '3px solid #1565c0' : '3px solid transparent';
   });
@@ -100,22 +101,22 @@ function mbox(label, val, sub, color) {
 }
 
 function kv(k, v, c) {
-  return '<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e2e6f0;font-size:12px">'
+  return '<div class="sx-kv" style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #e2e6f0;font-size:12px">'
     + '<span style="color:#64748b">' + k + '</span>'
     + '<span style="font-weight:600;text-align:right;max-width:60%;' + (c ? 'color:' + c + ';' : '') + '">' + (v || 'n/a') + '</span>'
     + '</div>';
 }
 
 function panel(title, body) {
-  return '<div style="background:#fff;border:1px solid #e2e6f0;border-radius:12px;padding:16px 18px">'
-    + '<div style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e6f0">' + title + '</div>'
+  return '<div class="sx-panel" style="background:#fff;border:1px solid #e2e6f0;border-radius:12px;padding:16px 18px">'
+    + '<div class="sx-panel-t" style="font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #e2e6f0">' + title + '</div>'
     + body + '</div>';
 }
 
 function linkBtn(label, url) {
   url = safeUrl(url);
   if (!url) return '';
-  return '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="padding:4px 11px;border-radius:6px;font-size:10px;font-weight:600;color:#1565c0;border:1px solid #e2e6f0;background:#f8f9fc;text-decoration:none;display:inline-block;margin-right:4px;margin-bottom:4px">' + esc(label) + '</a>';
+  return '<a class="sx-chip" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer" style="padding:4px 11px;border-radius:6px;font-size:10px;font-weight:600;color:#1565c0;border:1px solid #e2e6f0;background:#f8f9fc;text-decoration:none;display:inline-block;margin-right:4px;margin-bottom:4px">' + esc(label) + '</a>';
 }
 
 // ── Report builder ────────────────────────────────────────────────────────────

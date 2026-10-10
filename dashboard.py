@@ -144,7 +144,7 @@ def sidebar_item(e, selected):
     alert = html.escape(e.get("alert") or "N/A")
     # Click handling is done via event delegation in JS; only data-id is needed.
     return (
-        '<div class="ev-item" data-id="' + html.escape(e["id"], quote=True) + '" '
+        '<div class="ev-item' + (' ev-sel' if selected else '') + '" data-id="' + html.escape(e["id"], quote=True) + '" '
         'style="' + sel + 'cursor:pointer;padding:10px 14px;border-bottom:1px solid #eee;">'
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'
         '<span style="font-size:18px;font-weight:900;color:' + ac + '">M' + str(mag) + '</span>'
@@ -193,6 +193,48 @@ def _json_for_script(obj):
             .replace("<", "\\u003c")
             .replace("\u2028", "\\u2028")
             .replace("\u2029", "\\u2029"))
+
+SENTINEL_LOADER = r"""<script>
+/* SENTINEL easter-egg loader. Does nothing until the theme is unlocked:
+   Konami code, typing "sentinel", tapping the page title 7 times, or ?theme=sentinel.
+   (?theme=off switches it off again.) The theme itself lives in /sentinel/. Keep this copy in sync with the pages. */
+(function(){
+  var K='sx-theme',U='sx-unlocked',B='/sentinel/',V='1',d=document,w=window,loading=0,pending=null;
+  function g(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+  if(/[?&]theme=sentinel(&|$)/.test(location.search)){s(K,'sentinel');s(U,'1')}
+  if(/[?&]theme=off(&|$)/.test(location.search)){s(K,'off')}
+  function load(mode){
+    pending=mode;
+    if(w.Sentinel){w.Sentinel.start(mode);return}
+    if(loading)return; loading=1;
+    var l=d.createElement('link');l.rel='stylesheet';l.href=B+'sentinel.css?v='+V;d.head.appendChild(l);
+    var j=d.createElement('script');j.src=B+'sentinel.js?v='+V;j.onload=function(){if(w.Sentinel)w.Sentinel.start(pending)};d.head.appendChild(j);
+  }
+  if(g(K)==='sentinel'){
+    var st=d.createElement('style');st.id='sx-pre';st.textContent='html{background:#01040a}body{opacity:0}';d.head.appendChild(st);
+    setTimeout(function(){var e=d.getElementById('sx-pre');if(e&&e.parentNode)e.parentNode.removeChild(e)},2500);
+    load('resume');
+  }else if(g(U)==='1'){
+    w.addEventListener('load',function(){setTimeout(function(){load('unlocked')},500)});
+  }
+  var seq=[38,38,40,40,37,39,37,39,66,65],i=0,word='sentinel',typed='';
+  d.addEventListener('keydown',function(e){
+    var k=e.keyCode;i=(k===seq[i])?i+1:(k===seq[0]?1:0);
+    if(i===seq.length){i=0;load('engage');return}
+    var t=e.target,tag=t&&t.tagName;
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)||e.ctrlKey||e.metaKey||e.altKey||!e.key||e.key.length!==1)return;
+    typed=(typed+e.key.toLowerCase()).slice(-word.length);
+    if(typed===word){typed='';load('engage')}
+  });
+  var n=0,last=0;
+  d.addEventListener('click',function(e){
+    var t=e.target;if(!t||!t.closest||!t.closest('h1'))return;
+    var now=Date.now();n=(n&&now-last<900)?n+1:1;last=now;
+    if(n>=7){n=0;load('engage')}
+  },true);
+})();
+</script>"""
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 
@@ -298,6 +340,7 @@ def build(top_events, all_data, now_str):
         '<html lang="en"><head>',
         '<meta charset="UTF-8">',
         '<meta name="viewport" content="width=device-width,initial-scale=1">',
+        SENTINEL_LOADER,
         '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Crect%20width%3D%2724%27%20height%3D%2724%27%20rx%3D%275%27%20fill%3D%27%230f2350%27%2F%3E%3Cpath%20d%3D%27M3%2012h4l2.5-7%205%2014%202.5-7h4%27%20fill%3D%27none%27%20stroke%3D%27white%27%20stroke-width%3D%271.9%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E">',
         "<title>Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks | Arash Nassirpour</title>",
         '<meta name="description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms, impact intelligence and global disaster alerts." />',
