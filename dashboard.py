@@ -53,7 +53,6 @@ ERCC_UPGRADE_JS = """
     var filterEl = document.getElementById('ea-filter');
     var prevBtn = document.getElementById('ea-prev');
     var nextBtn = document.getElementById('ea-next');
-    var playBtn = document.getElementById('ea-play');
     if (!scroll || !bar || !track) { console.log('[disaster-alerts] DOM elements not found'); return; }
 
     if (!allItems.length) {
@@ -63,60 +62,32 @@ ERCC_UPGRADE_JS = """
       return;
     }
 
-    var ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
-    var ICON_PLAY  = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+    var items = allItems, idx = 0;
 
-    var items = allItems, paused = false, raf = null;
-    var SPEED = 0.5; // px per frame, gentle continuous scroll (same pace/feel as before)
-
-    function render(filter){
-      items = (!filter || filter === 'all') ? allItems : allItems.filter(function(it){ return it.source === filter; });
+    function show(){
       if (!items.length){
         scroll.innerHTML = '<span class="ea-item" style="cursor:default">No events for this filter</span>';
         return;
       }
-      var chips = items.map(function(it){
-        return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
-      }).join('');
-      // Duplicated once so the loop point (scrollLeft wrapping at the halfway mark) is seamless.
-      scroll.innerHTML = chips + chips;
-      track.scrollLeft = 0;
+      idx = ((idx % items.length) + items.length) % items.length;
+      var it = items[idx];
+      scroll.innerHTML = '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a>' +
+        '<span class="ea-count">' + (idx + 1) + ' / ' + items.length + '</span>';
+    }
+
+    function render(filter){
+      items = (!filter || filter === 'all') ? allItems : allItems.filter(function(it){ return it.source === filter; });
+      idx = 0;
+      show();
     }
 
     function updateNavState(){
       var enabled = items.length > 1;
-      [prevBtn, nextBtn, playBtn].forEach(function(b){ if (b) b.disabled = !enabled; });
+      [prevBtn, nextBtn].forEach(function(b){ if (b) b.disabled = !enabled; });
     }
 
-    function tick(){
-      if (!paused){
-        var half = scroll.scrollWidth / 2;
-        track.scrollLeft += SPEED;
-        if (half > 0 && track.scrollLeft >= half) track.scrollLeft -= half;
-      }
-      raf = requestAnimationFrame(tick);
-    }
-
-    function setPaused(p){
-      paused = p;
-      if (playBtn){
-        playBtn.innerHTML = paused ? ICON_PLAY : ICON_PAUSE;
-        playBtn.title = paused ? 'Play' : 'Pause';
-        playBtn.setAttribute('aria-label', paused ? 'Play' : 'Pause');
-      }
-    }
-
-    function nudge(dir){
-      var step = Math.max(220, track.clientWidth * 0.7) * dir;
-      var half = scroll.scrollWidth / 2;
-      var target = track.scrollLeft + step;
-      if (half > 0){ target = ((target % half) + half) % half; }
-      track.scrollTo({ left: target, behavior: 'smooth' });
-    }
-
-    if (prevBtn) prevBtn.addEventListener('click', function(){ nudge(-1); });
-    if (nextBtn) nextBtn.addEventListener('click', function(){ nudge(1); });
-    if (playBtn) playBtn.addEventListener('click', function(){ setPaused(!paused); });
+    if (prevBtn) prevBtn.addEventListener('click', function(){ idx--; show(); });
+    if (nextBtn) nextBtn.addEventListener('click', function(){ idx++; show(); });
 
     if (filterEl) filterEl.addEventListener('change', function(){
       render(this.value);
@@ -125,8 +96,6 @@ ERCC_UPGRADE_JS = """
 
     render('all');
     updateNavState();
-    setPaused(false); // playing by default, same as the original ticker
-    raf = requestAnimationFrame(tick);
     console.log('[disaster-alerts] banner shown with', allItems.length, 'items');
   });
 })();
@@ -266,14 +235,15 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
 .ea-label{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;letter-spacing:.8px;color:#fff;white-space:nowrap;flex-shrink:0;background:#dc2626;padding:5px 12px;border-radius:4px}
 .ea-dot{width:7px;height:7px;border-radius:50%;background:#fff;flex-shrink:0;animation:pulse 2s infinite}
 .ea-controls{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.ea-nav,.ea-play{flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1px solid #fca5a5;background:#fff;color:#b91c1c;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:.15s}
-.ea-nav svg,.ea-play svg{width:13px;height:13px;display:block}
-.ea-nav:hover,.ea-play:hover{background:#dc2626;border-color:#dc2626;color:#fff}
-.ea-nav:disabled,.ea-play:disabled{opacity:.3;cursor:default;pointer-events:none}
-.ea-track{flex:1;overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:none;-ms-overflow-style:none;mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 24px,#000 calc(100% - 24px),transparent)}
-.ea-track::-webkit-scrollbar{display:none}
-.ea-scroll{display:inline-block}
+.ea-nav{flex-shrink:0;width:24px;height:24px;border-radius:50%;border:1px solid #fca5a5;background:#fff;color:#b91c1c;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:.15s}
+.ea-nav svg{width:13px;height:13px;display:block}
+.ea-nav:hover{background:#dc2626;border-color:#dc2626;color:#fff}
+.ea-nav:disabled{opacity:.3;cursor:default;pointer-events:none}
+.ea-track{flex:1;min-width:0;overflow:hidden}
+.ea-scroll{display:flex;align-items:center;gap:12px;min-width:0}
+.ea-count{flex-shrink:0;font-size:11px;font-weight:700;color:#b91c1c;opacity:.75;white-space:nowrap}
 .ea-item{color:#7f1d1d;text-decoration:none;font-size:14px;font-weight:600;padding:0 4px}
+.ea-scroll .ea-item{flex:1 1 auto;min-width:0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .ea-item:hover{color:#dc2626;text-decoration:underline}
 .ea-sep{color:#e6a5a5;margin:0 26px;font-size:12px}
 .ea-more{flex-shrink:0;color:#b91c1c;font-size:10.5px;font-weight:700;text-decoration:none;white-space:nowrap}
@@ -449,12 +419,10 @@ def build(top_events, all_data, now_str):
 </header>""",
         '<div class="ea-bar ea-show" id="ea-bar">'
         '  <div class="ea-label"><span class="ea-dot"></span>GLOBAL DISASTER ALERTS</div>'
-        '  <div class="ea-track"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#b91c1c">Loading latest alerts&hellip;</span></div></div>'
+        '  <div class="ea-track" aria-live="polite"><div class="ea-scroll" id="ea-scroll"><span class="ea-item" style="cursor:default;color:#b91c1c">Loading latest alerts&hellip;</span></div></div>'
         '  <div class="ea-controls">'
         '    <button class="ea-nav" id="ea-prev" type="button" title="Previous alert" aria-label="Previous alert" disabled>'
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>'
-        '    <button class="ea-play" id="ea-play" type="button" title="Pause" aria-label="Pause" disabled>'
-        '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg></button>'
         '    <button class="ea-nav" id="ea-next" type="button" title="Next alert" aria-label="Next alert" disabled>'
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>'
         '  </div>'
