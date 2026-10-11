@@ -195,46 +195,63 @@ def _json_for_script(obj):
             .replace("\u2029", "\\u2029"))
 
 SENTINEL_LOADER = r"""<script>
-/* SENTINEL easter-egg loader. Does nothing until the theme is unlocked:
-   Konami code, typing "sentinel", tapping the page title 7 times, or ?theme=sentinel.
-   (?theme=off switches it off again.) The theme itself lives in /sentinel/. Keep this copy in sync with the pages. */
+/* SENTINEL theme loader. Adds a small "Theme: Standard | Sentinel" switch to the page. The theme files
+   (/sentinel/) are only fetched when Sentinel is chosen (or was chosen last time). ?theme=sentinel / ?theme=off
+   also work as links. Keep this copy in sync with the pages. */
 (function(){
-  var K='sx-theme',U='sx-unlocked',B='/sentinel/',V='1',d=document,w=window,loading=0,pending=null;
+  var K='sx-theme',B='/sentinel/',V='2',d=document,w=window,loading=0,pending=null;
   function g(k){try{return localStorage.getItem(k)}catch(e){return null}}
   function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-  if(/[?&]theme=sentinel(&|$)/.test(location.search)){s(K,'sentinel');s(U,'1')}
-  if(/[?&]theme=off(&|$)/.test(location.search)){s(K,'off')}
+  if(/[?&]theme=sentinel(&|$)/.test(location.search))s(K,'sentinel');
+  if(/[?&]theme=off(&|$)/.test(location.search))s(K,'off');
   function load(mode){
     pending=mode;
     if(w.Sentinel){w.Sentinel.start(mode);return}
     if(loading)return; loading=1;
     var l=d.createElement('link');l.rel='stylesheet';l.href=B+'sentinel.css?v='+V;d.head.appendChild(l);
-    var j=d.createElement('script');j.src=B+'sentinel.js?v='+V;j.onload=function(){if(w.Sentinel)w.Sentinel.start(pending)};d.head.appendChild(j);
+    var j=d.createElement('script');j.src=B+'sentinel.js?v='+V;j.onload=function(){if(w.Sentinel)w.Sentinel.start(pending)};
+    j.onerror=function(){loading=0};d.head.appendChild(j);
   }
   if(g(K)==='sentinel'){
     var st=d.createElement('style');st.id='sx-pre';st.textContent='html{background:#01040a}body{opacity:0}';d.head.appendChild(st);
     setTimeout(function(){var e=d.getElementById('sx-pre');if(e&&e.parentNode)e.parentNode.removeChild(e)},2500);
     load('resume');
-  }else if(g(U)==='1'){
-    w.addEventListener('load',function(){setTimeout(function(){load('unlocked')},500)});
   }
-  var seq=[38,38,40,40,37,39,37,39,66,65],i=0,word='sentinel',typed='';
-  d.addEventListener('keydown',function(e){
-    var k=e.keyCode;i=(k===seq[i])?i+1:(k===seq[0]?1:0);
-    if(i===seq.length){i=0;load('engage');return}
-    var t=e.target,tag=t&&t.tagName;
-    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'||(t&&t.isContentEditable)||e.ctrlKey||e.metaKey||e.altKey||!e.key||e.key.length!==1)return;
-    typed=(typed+e.key.toLowerCase()).slice(-word.length);
-    if(typed===word){typed='';load('engage')}
-  });
-  var n=0,last=0;
-  d.addEventListener('click',function(e){
-    var t=e.target;if(!t||!t.closest||!t.closest('h1'))return;
-    var now=Date.now();n=(n&&now-last<900)?n+1:1;last=now;
-    if(n>=7){n=0;load('engage')}
-  },true);
+  var css=d.createElement('style');
+  css.textContent='#sx-switch{position:fixed;left:14px;bottom:14px;z-index:99991;display:flex;align-items:center;gap:2px;padding:3px;border-radius:999px;background:rgba(12,18,32,.9);border:1px solid rgba(138,242,255,.35);box-shadow:0 4px 18px rgba(0,0,0,.35);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font:700 12px/1 system-ui,-apple-system,"Segoe UI",sans-serif}'
+   +'#sx-switch.sx-quake{bottom:54px}'
+   +'#sx-switch span{padding:0 8px 0 10px;color:#9fb3c8;font-weight:600;letter-spacing:.04em}'
+   +'#sx-switch button{appearance:none;-webkit-appearance:none;border:0;margin:0;cursor:pointer;min-height:30px;padding:0 13px;border-radius:999px;background:transparent;color:#c9d6e3;font:inherit;letter-spacing:.03em;transition:background .15s,color .15s}'
+   +'#sx-switch button:hover{color:#fff}'
+   +'#sx-switch button:focus-visible{outline:2px solid #8af2ff;outline-offset:1px}'
+   +'#sx-switch button[aria-pressed=true]{background:#fff;color:#0c1220}'
+   +'#sx-switch button[data-t=sentinel][aria-pressed=true]{background:rgba(56,213,255,.22);color:#8af2ff;box-shadow:0 0 14px rgba(56,213,255,.45)}'
+   +'@media(max-width:420px){#sx-switch span{display:none}#sx-switch button{padding:0 12px}}'
+   +'@media print{#sx-switch{display:none}}';
+  d.head.appendChild(css);
+  function build(){
+    if(d.getElementById('sx-switch'))return;
+    var box=d.createElement('div');box.id='sx-switch';box.setAttribute('role','group');box.setAttribute('aria-label','Page theme');
+    if(/earthquake-dashboard/.test(location.pathname))box.className='sx-quake';
+    box.innerHTML='<span>Theme</span><button type="button" data-t="std">Standard</button><button type="button" data-t="sentinel" title="Mission-control theme">Sentinel</button>';
+    function sync(){
+      var on=d.documentElement.classList.contains('sx');
+      box.querySelector('[data-t=std]').setAttribute('aria-pressed',on?'false':'true');
+      box.querySelector('[data-t=sentinel]').setAttribute('aria-pressed',on?'true':'false');
+    }
+    box.addEventListener('click',function(e){
+      var b=e.target.closest&&e.target.closest('button');if(!b)return;
+      if(b.getAttribute('data-t')==='sentinel'){if(d.documentElement.classList.contains('sx'))return;load('engage')}
+      else if(w.Sentinel){w.Sentinel.disengage(true)}else{s(K,'off')}
+      setTimeout(sync,0);
+    });
+    new MutationObserver(sync).observe(d.documentElement,{attributes:true,attributeFilter:['class']});
+    sync();d.body.appendChild(box);
+  }
+  if(d.readyState==='loading')d.addEventListener('DOMContentLoaded',build);else build();
 })();
-</script>"""
+</script>
+"""
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 
@@ -268,8 +285,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
   .ea-bar{flex-wrap:wrap;padding:10px 14px;gap:8px}
   .ea-label{order:1}
   .ea-filter{order:2;margin-left:auto;max-width:140px}
-  .ea-track{order:3;flex:1 1 180px;min-width:0}
-  .ea-controls{order:4}}
+  .ea-controls{order:3}
+  .ea-track{order:4;flex:1 1 100%;min-width:0}}
 .live{width:8px;height:8px;border-radius:50%;background:#2e7d32;display:inline-block;margin-right:7px;animation:pulse 2s infinite;vertical-align:middle}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .body{display:flex;flex:1;overflow:hidden;min-height:0}
