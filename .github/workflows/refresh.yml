@@ -25,14 +25,14 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install -r requirements.txt
       - name: Restore headline cache (keeps us within GDELT's rate limit)
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: headlines_cache.json
           key: headlines-${{ github.run_id }}
@@ -41,10 +41,10 @@ jobs:
         run: python run.py --no-open --no-ai
       - name: Stage site
         run: mkdir -p dist && cp earthquake_brief.html dist/index.html && cp og-image.png dist/og-image.png
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
         with:
           enablement: true
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
   deploy:
@@ -55,4 +55,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
