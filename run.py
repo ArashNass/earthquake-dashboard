@@ -1,7 +1,6 @@
 """
 run.py - Entry point. Run this.
   python run.py            Live mode
-  python run.py --mock     Demo mode (no internet needed)
   python run.py --no-ai    Skip AI narrative (also skipped when ANTHROPIC_API_KEY is unset)
   python run.py --watch    Auto-refresh every 10 minutes (browser opens once)
   python run.py --no-open  Build the file without opening a browser
@@ -19,12 +18,11 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 from settings   import OUTPUT_FILE, REFRESH_MINUTES, QUERY_DAYS, QUERY_LIMIT, ALERT_C
-from fetcher    import (fetch_top_events, fetch_detail, enrich,
+import usgs_products as U
+from fetcher    import (fetch_top_events, fetch_detail, enrich, get,
                         extract_shakemap, extract_aftershock, extract_focal,
-                        fetch_historical, fetch_weather, fetch_news, fetch_headlines,
-                        fetch_intel, fetch_ai,
-                        get_building_stock)
-from mock_data  import MOCK_EVENTS, mock_first_event, mock_stub
+                        fetch_historical, fetch_weather, fetch_general_links,
+                        fetch_media_links, fetch_ai, get_country)
 from dashboard  import build
 
 
@@ -37,6 +35,7 @@ def load_one(stub, no_ai=False):
         # the one used in the top-events list. The sidebar is built from the
         # list, so pin the id to the list's id or sidebar clicks won't match.
         ev["event_id"] = stub["id"]
+        ev["country_shared"] = stub.get("country_shared", False)
         sm     = extract_shakemap(detail)
 
         # Run the slower fetches in parallel.
@@ -49,52 +48,58 @@ def load_one(stub, no_ai=False):
                 print(f"    [WARN] {stub['id']} {key}: {ex}")
                 results[key] = None
 
-        threads = [
-            threading.Thread(target=run_fetch, args=("afs", lambda: extract_aftershock(detail)), daemon=True),
-            threading.Thread(target=run_fetch, args=("foc", lambda: extract_focal(detail)), daemon=True),
-            threading.Thread(target=run_fetch, args=("his", lambda: fetch_historical(
-                ev["lat"], ev["lon"], ev["event_id"], before_iso=ev.get("t_iso"))), daemon=True),
-            threading.Thread(target=run_fetch, args=("wea", lambda: fetch_weather(ev["lat"], ev["lon"])), daemon=True),
-            threading.Thread(target=run_fetch, args=("nws", lambda: fetch_news(ev)), daemon=True),
-            threading.Thread(target=run_fetch, args=("intel", lambda: fetch_intel(ev, detail)), daemon=True),
+        jobs = [
+            ("afs",   lambda: extract_aftershock(detail)),
+            ("foc",   lambda: extract_focal(detail)),
+            ("pager", lambda: U.pager(detail, get)),
+            ("gf",    lambda: U.ground_failure(detail)),
+            ("txt",   lambda: U.summary_text(detail)),
+            ("ff",    lambda: U.finite_fault(detail)),
+            ("org",   lambda: U.origin(detail)),
+            ("his",   lambda: fetch_historical(ev["lat"], ev["lon"], ev["event_id"], before_iso=ev.get("t_iso"))),
+            ("wea",   lambda: fetch_weather(ev["lat"], ev["lon"])),
+            ("gen",   lambda: fetch_general_links(ev, detail)),
         ]
-        # GDELT only allows one request every 5 s, so headlines queue up across events and get a longer wait.
-        hdl = threading.Thread(target=run_fetch, args=("hdl", lambda: fetch_headlines(ev)), daemon=True)
-        for t in threads + [hdl]:
+        threads = [threading.Thread(target=run_fetch, args=job, daemon=True) for job in jobs]
+        # Media coverage makes a few polite requests per outlet, so it gets a longer wait.
+        media = threading.Thread(target=run_fetch, args=("media", lambda: fetch_media_links(ev)), daemon=True)
+        for t in threads + [media]:
             t.start()
         for t in threads:
-            t.join(timeout=20)
-        hdl.join(timeout=85)
+            t.join(timeout=30)
+        media.join(timeout=90)
 
-        afs = results.get("afs")
-        foc = results.get("foc")
-        wea = results.get("wea")
-        bld = get_building_stock(ev["place"])
-        nar = None if no_ai else fetch_ai(ev, afs, foc, bld, wea)
+        pager = results.get("pager")
+        foc   = results.get("foc")
+        nar   = None if no_ai else fetch_ai(ev, pager, foc, sm)
 
         return dict(ev=ev, sm=sm,
-                    aftershock=afs, focal=foc,
+                    aftershock=results.get("afs"), focal=foc,
+                    finite_fault=results.get("ff"), origin=results.get("org"),
+                    pager=pager, ground_failure=results.get("gf"),
+                    summary=results.get("txt"),
                     historical=results.get("his") or [],
-                    weather=wea, building=bld,
-                    news=(results.get("nws") or []) + (results.get("hdl") or []),
-                    intel=results.get("intel") or [],
+                    weather=results.get("wea"),
+                    general=results.get("gen") or [],
+                    media=results.get("media") or [],
                     narrative=nar)
     except Exception as ex:
         print(f"    [WARN] {stub['id']}: {ex} - detail feed failed, marking unavailable (no invented data)")
         return {
             "ev": {
-                "event_id": stub["id"], "mag": stub["mag"], "place": stub["place"],
+                "event_id": stub["id"], "mag": stub["mag"], "mag_type": "", "place": stub["place"],
                 "lat": stub["lat"], "lon": stub["lon"], "depth": stub["depth"],
-                "depth_note": "", "t_str": stub.get("time_str", ""), "t_age_str": stub.get("age_str", ""),
+                "depth_note": "", "t_str": stub.get("time_str", ""), "t_ms": stub.get("t_ms", 0),
                 "alert_color": ALERT_C.get(stub.get("alert") or "", ALERT_C[""]),
-                "alert_lbl": stub.get("alert") or "N/A", "pager_alert": "N/A", "pager_color": ALERT_C[""],
-                "mmi": 0, "mmi_label": "--", "mmi_desc": "--", "mmi_effect": "",
-                "mmi_color": "#ccc", "tectonic": "", "energy_mt": 0, "rupture_km": 0,
+                "pager_alert": stub.get("alert") or "", "status": "",
+                "mmi": 0, "mmi_roman": "", "mmi_shaking": "", "mmi_damage": "", "mmi_color": "#ccc",
+                "felt": 0, "cdi": None, "energy_mt": 0, "rupture_km": 0,
                 "tsunami": stub.get("tsunami", False), "url": stub.get("url", ""),
             },
-            "sm": {"mmi_url": "", "pga_url": ""},
-            "aftershock": None, "focal": None, "historical": [],
-            "weather": None, "building": None, "news": [], "intel": [], "narrative": None,
+            "sm": {"mmi_url": "", "pga_url": "", "peak": None},
+            "aftershock": None, "focal": None, "finite_fault": None, "origin": None, "pager": None,
+            "ground_failure": None, "summary": None, "historical": [], "weather": None,
+            "general": [], "media": [], "narrative": None,
             "data_unavailable": True, "error_detail": str(ex),
         }
 
@@ -102,22 +107,22 @@ def load_one(stub, no_ai=False):
 def run(args, open_browser=True):
     print(f"\n[{datetime.now():%H:%M:%S}] Earthquake Rapid Response Dashboard")
 
-    if args.mock:
-        print("  [MOCK] Demo mode - Venezuela M7.5")
-        top_events = MOCK_EVENTS
-        all_data   = [mock_first_event()] + [mock_stub(e) for e in MOCK_EVENTS[1:]]
-    else:
+    if True:
         print(f"  Fetching top {args.limit} earthquakes from USGS (last {args.days} days)...")
         try:
             top_events = fetch_top_events(days=args.days, limit=args.limit)
         except Exception as ex:
             print(f"  [ERROR] USGS unreachable: {ex}")
-            print("  Try: python run.py --mock")
             return False
 
         if not top_events:
             print("  [ERROR] No events returned.")
             return False
+
+        # Several large quakes in one country within weeks: a bare country name is not enough to tie a headline to one of them.
+        for e in top_events:
+            c = get_country(e["place"])
+            e["country_shared"] = any(o is not e and get_country(o["place"]) == c and abs(o["t_ms"] - e["t_ms"]) < 21 * 86400e3 for o in top_events)
 
         largest = max(top_events, key=lambda e: e["mag"])
         print(f"  Found {len(top_events)}. Largest: M{largest['mag']} {largest['place']}")
@@ -153,7 +158,6 @@ def run(args, open_browser=True):
 
 def main():
     p = argparse.ArgumentParser(description="Earthquake Rapid Response Dashboard")
-    p.add_argument("--mock",    action="store_true", help="Demo mode, no internet needed")
     p.add_argument("--no-ai",   action="store_true", help="Skip AI narrative")
     p.add_argument("--no-open", action="store_true", help="Don't open the browser")
     p.add_argument("--watch",   action="store_true", help=f"Auto-refresh every {REFRESH_MINUTES} min")

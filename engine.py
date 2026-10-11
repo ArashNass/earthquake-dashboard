@@ -1,82 +1,69 @@
 """
-engine.py - Event enrichment and seismology calculations.
-Change calculations or tectonic zones here only. No network access in this module.
+engine.py - Event enrichment and the few seismology calculations the page still makes.
+No network access in this module.
+
+Everything else on the page (peak ground motions, PAGER, ground failure, mechanism, aftershock
+forecast, tectonic summary) is read straight from the USGS products in usgs_products.py, never
+estimated here.
 """
 
 from datetime import datetime, timezone
 
 from settings import ALERT_C, MMI_SCALE
 
-# Ordered most-specific first; the first matching box wins.
-TECTONIC_ZONES = [
-    (lambda la, lo: -75 <= lo <= -63 and    8 <= la <= 12, "Caribbean Plate - Bocono-Moron-El Pilar Fault System"),
-    (lambda la, lo: -120 <= lo <= -114 and 32 <= la <= 42, "San Andreas Fault system"),
-    (lambda la, lo:  130 <= lo <= 150 and  30 <= la <= 46, "Japan subduction zone (Pacific Plate)"),
-    (lambda la, lo:  -75 <= lo <= -65 and -45 <= la <= 10, "South American subduction zone (Nazca Plate)"),
-    (lambda la, lo: -130 <= lo <= -110 and 38 <= la <= 55, "Cascadia subduction zone"),
-    (lambda la, lo:   95 <= lo <= 140 and -10 <= la <= 20, "Sunda/Java subduction zone"),
-    (lambda la, lo:   24 <= lo <=  44 and  35 <= la <= 42, "North Anatolian Fault region"),
-    (lambda la, lo:  -90 <= lo <= -60 and  10 <= la <= 22, "Caribbean subduction zone"),
-    (lambda la, lo:   65 <= lo <=  85 and  25 <= la <= 40, "Himalayan collision zone"),
-]
 
-
-def tectonic_zone(lat, lon):
-    """Coarse tectonic classification from bounding boxes."""
-    return next((label for fn, label in TECTONIC_ZONES if fn(lat, lon)),
-                "Intraplate / undefined region")
-
-
-def depth_note(depth_km):
+def depth_class(depth_km):
+    """Standard depth classes for hypocentres."""
     if depth_km > 300:
-        return "Deep focus - reduced surface damage"
+        return "Deep (over 300 km)"
     if depth_km > 70:
-        return "Intermediate depth"
-    if depth_km > 30:
-        return "Shallow - elevated damage potential"
-    return "Very shallow - maximum ground motion"
+        return "Intermediate (70 to 300 km)"
+    return "Shallow (under 70 km)"
 
 
 def energy_megatons(mag):
-    """Radiated seismic energy (Gutenberg-Richter), expressed in megatons of TNT."""
+    """Radiated seismic energy, log10 E[J] = 1.5 M + 4.8 (Gutenberg-Richter), as megatons of TNT
+    (1 Mt = 4.184e15 J). A comparison figure, not the energy released by the whole process."""
     if not mag:
         return 0.0
     return round(10 ** (1.5 * mag + 4.8) / 4.184e15, 3)
 
 
 def rupture_length_km(mag):
-    """Approximate rupture length (Wells and Coppersmith style scaling)."""
+    """Expected subsurface rupture length, Wells and Coppersmith (1994), all slip types:
+    log10 L[km] = -2.44 + 0.59 M. An empirical average; individual events scatter widely."""
     if not mag:
         return 0.0
-    return round(10 ** (0.5 * mag - 1.77), 1)
+    return round(10 ** (-2.44 + 0.59 * mag), 1)
 
 
-def mmi_to_pga_pctg(mmi):
-    """Approximate peak ground acceleration in %g from MMI (Worden et al. inversion)."""
+def mmi_info(mmi):
+    """Roman numeral, perceived shaking, potential damage and colour for an intensity value."""
     if not mmi or mmi <= 0:
-        return 0
-    return min(300, round(10 ** ((mmi - 1.78) / 2.5)))
+        return None
+    n = max(1, min(10, int(round(mmi))))
+    roman, shaking, damage, color, pga, pgv = MMI_SCALE[n]
+    return {"roman": roman, "shaking": shaking, "damage": damage, "color": color, "pga_ref": pga, "pgv_ref": pgv}
 
 
 def enrich(detail):
     """Turn a USGS GeoJSON detail feature into the flat event dict used everywhere.
 
-    Defensive against missing/null fields: mag, mmi, alert and time may all be None
-    on fresh events.
+    Defensive against missing/null fields: mag, mmi, alert and time may all be None on fresh events.
     """
     p = detail.get("properties") or {}
     c = (detail.get("geometry") or {}).get("coordinates") or [0, 0, 0]
     lon, lat, depth = float(c[0]), float(c[1]), float(c[2])
 
-    mag   = float(p.get("mag") or 0)
-    t     = datetime.fromtimestamp((p.get("time") or 0) / 1000, tz=timezone.utc)
-    age_h = (datetime.now(timezone.utc) - t).total_seconds() / 3600
+    mag = float(p.get("mag") or 0)
+    t_ms = int(p.get("time") or 0)
+    t = datetime.fromtimestamp(t_ms / 1000, tz=timezone.utc)
 
-    mmi = float(p.get("mmi") or 0)
-    ms  = MMI_SCALE.get(int(round(mmi)), ("--", "--", "--", "#ccc"))
+    mmi = round(float(p.get("mmi") or 0), 1)
+    mi = mmi_info(mmi) or {}
 
     alert = (p.get("alert") or "").upper()
-    ac    = ALERT_C.get(alert or "N/A", ALERT_C[""])
+    ac = ALERT_C.get(alert or "N/A", ALERT_C[""])
 
     # The full feed id ("us6000t7zc") must be used, not properties.code
     # ("6000t7zc"), because the sidebar looks events up by feed id.
@@ -85,29 +72,27 @@ def enrich(detail):
     return {
         "event_id":    event_id,
         "mag":         mag,
+        "mag_type":    (p.get("magType") or "").strip(),
         "place":       p.get("place") or "Unknown location",
         "lat":         lat,
         "lon":         lon,
         "depth":       depth,
-        "depth_note":  depth_note(depth),
-        "t_str":       t.strftime("%d %b %Y  %H:%M:%S UTC"),
-        "t_age_str":   (f"{int(age_h)}h {int((age_h % 1) * 60)}m ago" if 0 <= age_h < 48
-                        else f"{int(age_h / 24)}d ago" if age_h >= 48
-                        else t.strftime("%d %b %Y")),
+        "depth_note":  depth_class(depth),
+        "t_str":       t.strftime("%d %b %Y %H:%M:%S UTC"),
+        "t_ms":        t_ms,
         "t_iso":       t.strftime("%Y-%m-%d"),
         "t_utc":       t.strftime("%Y-%m-%dT%H:%M:%S"),
         "alert_color": ac,
-        "alert_lbl":   alert or "N/A",
-        "pager_alert": alert or "N/A",
-        "pager_color": ac,
+        "pager_alert": alert,                     # overall PAGER level, "" when not yet issued
+        "status":      (p.get("status") or "").lower(),   # reviewed / automatic
         "mmi":         mmi,
-        "mmi_label":   ms[0],
-        "mmi_desc":    ms[1],
-        "mmi_effect":  ms[2],
-        "mmi_color":   ms[3],
+        "mmi_roman":   mi.get("roman", ""),
+        "mmi_shaking": mi.get("shaking", ""),
+        "mmi_damage":  mi.get("damage", ""),
+        "mmi_color":   mi.get("color", "#ccc"),
         "felt":        int(p.get("felt") or 0),
+        "cdi":         round(float(p["cdi"]), 1) if p.get("cdi") else None,
         "tsunami":     bool(p.get("tsunami")),
-        "tectonic":    tectonic_zone(lat, lon),
         "energy_mt":   energy_megatons(mag),
         "rupture_km":  rupture_length_km(mag),
         "url":         p.get("url") or f"https://earthquake.usgs.gov/earthquakes/eventpage/{event_id}",

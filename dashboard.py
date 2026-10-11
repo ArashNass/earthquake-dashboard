@@ -6,7 +6,9 @@ import html
 import json
 from pathlib import Path
 
-from settings import ALERT_C, MMI_C, PAGER_D, JS_FILE
+from datetime import datetime, timezone
+
+from settings import ALERT_C, MMI_C, MMI_SCALE, PAGER_THRESHOLDS, JS_FILE
 
 HERE = Path(__file__).resolve().parent
 
@@ -214,6 +216,16 @@ ERCC_UPGRADE_JS = r"""
 
 
 
+def _age_text(t_ms):
+    """'37h ago' / '5d ago'. The page refreshes this in the browser, so it never goes stale."""
+    if not t_ms:
+        return ""
+    h = (datetime.now(timezone.utc).timestamp() * 1000 - t_ms) / 3.6e6
+    if h < 1:
+        return "just now"
+    return f"{int(h)}h ago" if h < 48 else f"{int(h / 24)}d ago"
+
+
 def sidebar_item(e, selected):
     ac  = ALERT_C.get(e.get("alert") or "", ALERT_C[""])
     sel = "background:#e8f0fe;border-left:3px solid #1565c0;" if selected else "border-left:3px solid transparent;"
@@ -221,51 +233,53 @@ def sidebar_item(e, selected):
     place = e.get("place") or "Unknown location"
     pl  = html.escape(place[:44] + ("..." if len(place) > 44 else ""))
     mag = round(float(e.get("mag") or 0), 1)
-    alert = html.escape(e.get("alert") or "N/A")
+    alert = html.escape(e.get("alert") or "PENDING")
+    t_ms = int(e.get("t_ms") or 0)
     # Click handling is done via event delegation in JS; only data-id is needed.
     return (
         '<div class="ev-item' + (' ev-sel' if selected else '') + '" data-id="' + html.escape(e["id"], quote=True) + '" '
         'style="' + sel + 'cursor:pointer;padding:10px 14px;border-bottom:1px solid #eee;">'
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'
         '<span style="font-size:18px;font-weight:900;color:' + ac + '">M' + str(mag) + '</span>'
-        '<span style="display:flex;align-items:center;gap:5px">'
+        '<span style="display:flex;align-items:center;gap:5px" title="USGS PAGER alert level">'
         '<span style="font-size:9px;font-weight:700;color:' + ac + ';text-transform:uppercase">' + alert + '</span>'
         '<span style="width:7px;height:7px;border-radius:50%;background:' + dot + ';display:inline-block"></span>'
         '</span></div>'
-        '<div style="font-size:11px;font-weight:600;color:#1a1f36;margin-bottom:2px">' + pl + '</div>'
-        '<div style="font-size:10px;color:#888">' + html.escape(e.get("age_str", "")) + ' - '
-        + str(round(float(e.get("depth") or 0))) + ' km</div>'
+        '<div style="font-size:11px;font-weight:600;color:#1a1f36;margin-bottom:2px" title="' + html.escape(place, quote=True) + '">' + pl + '</div>'
+        '<div style="font-size:10px;color:#888"><span class="ev-age" data-t="' + str(t_ms) + '">' + html.escape(_age_text(t_ms)) + '</span> - '
+        + str(round(float(e.get("depth") or 0))) + ' km deep</div>'
         '</div>'
     )
 
 # ── Serialise event data for JSON embedding ───────────────────────────────────
 
 _EV_KEYS_DEFAULTS = {
-    "event_id": "", "mag": 0, "place": "", "lat": 0, "lon": 0, "depth": 0,
-    "depth_note": "", "t_str": "", "t_age_str": "", "alert_color": ALERT_C[""],
-    "alert_lbl": "N/A", "pager_alert": "N/A", "pager_color": ALERT_C[""],
-    "mmi": 0, "mmi_label": "--", "mmi_desc": "--", "mmi_effect": "",
-    "mmi_color": "#ccc", "tectonic": "", "energy_mt": 0, "rupture_km": 0,
-    "tsunami": False, "url": "",
+    "event_id": "", "mag": 0, "mag_type": "", "place": "", "lat": 0, "lon": 0, "depth": 0,
+    "depth_note": "", "t_str": "", "t_ms": 0, "t_iso": "", "alert_color": ALERT_C[""],
+    "pager_alert": "", "status": "", "mmi": 0, "mmi_roman": "", "mmi_shaking": "", "mmi_damage": "",
+    "mmi_color": "#ccc", "felt": 0, "cdi": None, "tsunami": False, "energy_mt": 0, "rupture_km": 0, "url": "",
 }
+
+_DATA_KEYS = ("aftershock", "focal", "finite_fault", "origin", "pager", "ground_failure", "summary",
+              "weather", "narrative")
 
 
 def serialize(data):
     ev = data.get("ev") or {}
     sm = data.get("sm") or {}
-    return {
+    out = {
         "ev":         {k: ev.get(k, dflt) for k, dflt in _EV_KEYS_DEFAULTS.items()},
-        "sm":         {"mmi_url": sm.get("mmi_url", ""), "pga_url": sm.get("pga_url", "")},
-        "aftershock": data.get("aftershock"),
-        "focal":      data.get("focal"),
+        "sm":         {"mmi_url": sm.get("mmi_url", ""), "pga_url": sm.get("pga_url", ""),
+                       "peak": sm.get("peak"), "version": sm.get("version"),
+                       "status": sm.get("status"), "processed": sm.get("processed")},
         "historical": data.get("historical") or [],
-        "weather":    data.get("weather"),
-        "building":   data.get("building"),
-        "news":       data.get("news") or [],
-        "intel":      data.get("intel") or [],
-        "narrative":  data.get("narrative"),
+        "general":    data.get("general") or [],
+        "media":      data.get("media") or [],
         "data_unavailable": bool(data.get("data_unavailable")),
     }
+    for k in _DATA_KEYS:
+        out[k] = data.get(k)
+    return out
 
 
 def _json_for_script(obj):
@@ -280,7 +294,7 @@ SENTINEL_LOADER = r"""<script>
    (/sentinel/) are only fetched when Sentinel is chosen (or was chosen last time). ?theme=sentinel / ?theme=off
    also work as links. Keep this copy in sync with the pages. */
 (function(){
-  var K='sx-theme',B='/sentinel/',V='6',d=document,w=window,loading=0,pending=null;
+  var K='sx-theme',B='/sentinel/',V='7',d=document,w=window,loading=0,pending=null;
   function g(k){try{return localStorage.getItem(k)}catch(e){return null}}
   function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
   if(/[?&]theme=sentinel(&|$)/.test(location.search))s(K,'sentinel');
@@ -434,8 +448,9 @@ def build(top_events, all_data, now_str):
           .replace("__ALL_DATA__",   _json_for_script([serialize(d) for d in all_data]))
           .replace("__FIRST_ID__",   _json_for_script(first_id))
           .replace("__MMI_COLORS__", _json_for_script(MMI_C))
+          .replace("__MMI_SCALE__", _json_for_script({str(k): list(v) for k, v in MMI_SCALE.items()}))
           .replace("__ALERT_C__",    _json_for_script(ALERT_C))
-          .replace("__PAGER_DESC__", _json_for_script(PAGER_D)))
+          .replace("__PAGER_THRESHOLDS__", _json_for_script(PAGER_THRESHOLDS)))
 
     return "\n".join([
         "<!DOCTYPE html>",
@@ -445,10 +460,10 @@ def build(top_events, all_data, now_str):
         SENTINEL_LOADER,
         '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2024%2024%27%3E%3Crect%20width%3D%2724%27%20height%3D%2724%27%20rx%3D%275%27%20fill%3D%27%230f2350%27%2F%3E%3Cpath%20d%3D%27M3%2012h4l2.5-7%205%2014%202.5-7h4%27%20fill%3D%27none%27%20stroke%3D%27white%27%20stroke-width%3D%271.9%27%20stroke-linecap%3D%27round%27%20stroke-linejoin%3D%27round%27%2F%3E%3C%2Fsvg%3E">',
         "<title>Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks | Arash Nassirpour</title>",
-        '<meta name="description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms, impact intelligence and global disaster alerts." />',
+        '<meta name="description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms, PAGER impact estimates and global disaster alerts." />',
         '<link rel="canonical" href="https://arashnassirpour.com/earthquake-dashboard/" />',
         '<meta property="og:title" content="Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks" />',
-        '<meta property="og:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms and impact intelligence." />',
+        '<meta property="og:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts, fault mechanisms and PAGER impact estimates." />',
         '<meta property="og:url" content="https://arashnassirpour.com/earthquake-dashboard/" />',
         '<meta property="og:type" content="website" />',
         '<meta property="og:site_name" content="Arash Nassirpour" />',
@@ -457,7 +472,7 @@ def build(top_events, all_data, now_str):
         '<meta name="robots" content="index, follow, max-image-preview:large" />',
         '<meta name="twitter:card" content="summary_large_image" />',
         '<meta name="twitter:title" content="Live Earthquake Dashboard - ShakeMaps &amp; Aftershocks" />',
-        '<meta name="twitter:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts and impact intelligence." />',
+        '<meta name="twitter:description" content="Track major earthquakes with live USGS data, ShakeMaps, aftershock forecasts and PAGER impact estimates." />',
         '<meta name="twitter:image" content="https://arashnassirpour.com/earthquake-dashboard/og-image.png" />',
         '<script type="application/ld+json">'
         '{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Rapid Earthquake Response",'

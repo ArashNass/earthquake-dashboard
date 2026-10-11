@@ -2,33 +2,34 @@
 
 **Live dashboard:** https://arashnassirpour.com/earthquake-dashboard/
 
-A self-updating briefing page for the largest earthquakes of the last 90 days. It combines ShakeMap ground-motion layers, aftershock forecasts, fault mechanisms, historical seismicity, weather-driven landslide context, building-stock vulnerability, a global disaster-alert ticker, and an event-specific intelligence panel (verified facts plus matching reports and headlines).
+A self-updating briefing page for the largest earthquakes of the last 90 days. Every figure is a value published by USGS (or another named source), passed through unchanged; the page does not estimate shaking, losses or aftershocks itself.
 
-## Data sources
+## What is shown, and where it comes from
 
-| Source | Used for |
+| Section | Source |
 |---|---|
-| USGS | Event list, event record (review status, tsunami flag, "Did You Feel It" reports), ShakeMap contours, aftershock forecast and counts, focal mechanism, historical seismicity |
-| UN GDACS (JSON API) | Alert level, population exposed, modelled tsunami height, matched to the USGS event by place, time and magnitude |
-| EMSC | Independent cross-check of magnitude and depth (shown as "Agrees" or "Differs") |
-| GEM Foundation | Post-event assessment, where one exists |
-| Wikipedia | Event article, shown only if its year, month, day (within one) and magnitude (within 0.5) match the event |
-| GDELT | Up to three recent news headlines per event; cached per event (6 h, or 30 min after a failed call) because GDELT allows one request per 5 s |
-| UN ReliefWeb | Humanitarian reports. Needs an approved app name: set `RELIEFWEB_APPNAME`; without it the source yields nothing |
-| NASA EONET + USGS | Global disaster-alert ticker |
-| Open-Meteo | Recent rainfall for landslide context |
-| Esri | Map tiles (World Street Map and World Imagery) |
+| Magnitude and type, location, depth and depth type, status, station count, uncertainties | USGS event record (`origin` product) |
+| Shaking intensity (MMI), peak ground acceleration (g), peak ground velocity (cm/s), spectral accelerations (0.3 / 1.0 / 3.0 s) and the map contours | USGS ShakeMap product (map-wide maxima, with version and status) |
+| Fatality and economic alert levels, most-likely loss bins, population exposed per intensity, USGS impact statements | USGS PAGER product |
+| Landslide and liquefaction alert levels, hazard area, people exposed | USGS ground-failure product |
+| Fault mechanism, nodal planes, Mw, % double-couple | USGS moment-tensor product |
+| Rupture dimensions and maximum slip | USGS finite-fault product; where none exists, the Wells and Coppersmith (1994) average length is shown and labelled as an estimate |
+| Aftershock probabilities (M5/6/7+, day to year), expected M3+ count, observed counts | USGS operational aftershock forecast |
+| Key points, tectonic setting, reported impacts | USGS event text products |
+| Historical context | USGS catalogue (M5.5+, 250 km, 100 years) |
+| Media | One link per outlet (BBC News, CNN, Sky News, ABC News): the best matching headline from Google News RSS limited to that outlet, or that outlet's own search page when nothing reliable is found |
+| General | Wikipedia (event article only when year, month, day within one and magnitude within 0.5 match; otherwise a search), Wikipedia list of earthquakes of the year, USGS pages, EMSC, GDACS, ReliefWeb, GEM |
+| Rainfall | Open-Meteo (context only) |
+| Alert strip | USGS, UN GDACS and NASA EONET |
+| Map tiles | Esri |
 
-External data remains attributed in the generated dashboard. Items that cannot be tied to the event are dropped rather than shown, and a source that fails is simply omitted.
-
-Failed event-detail requests are reported honestly as unavailable. The production build does not invent replacement news, narratives, or measurements; verified USGS summary fields remain visible where available. A total build failure exits unsuccessfully so the last good deployment stays live.
+Failed event-detail requests are reported as unavailable; nothing is invented. A source that fails is omitted. A total build failure exits unsuccessfully so the last good deployment stays live.
 
 ## Quick start
 
 ```bash
 python -m pip install -r requirements.txt
 python run.py              # live mode
-python run.py --mock       # deterministic demo mode
 python run.py --watch      # rebuild every 10 minutes
 python run.py --no-ai      # skip optional AI narrative
 python run.py --no-open    # do not launch a browser
@@ -39,20 +40,18 @@ Optional environment variables:
 
 | Variable | Effect |
 |---|---|
-| `ANTHROPIC_API_KEY` | Enables the AI narrative. Without it, that feature is skipped and the rest still builds |
-| `RELIEFWEB_APPNAME` | Approved ReliefWeb app name, enabling humanitarian reports |
+| `ANTHROPIC_API_KEY` | Enables the optional AI narrative. Without it, that feature is skipped and the rest still builds |
 
 ## Architecture
 
 | File | Responsibility |
 |---|---|
-| `settings.py` | Constants, scales, timeouts, building stock, and limits |
-| `engine.py` | Seismology calculations and enrichment |
-| `fetcher.py` | External HTTP requests and source handling |
-| `mock_data.py` | Demo data and deterministic fallback fixtures |
+| `settings.py` | Constants, the MMI scale, PAGER thresholds, timeouts and limits |
+| `engine.py` | Event enrichment and the few display calculations |
+| `usgs_products.py` | Parsers for the USGS ShakeMap, PAGER, ground-failure, moment-tensor, finite-fault, origin, text and aftershock products |
+| `fetcher.py` | External HTTP requests, media and general links |
 | `dashboard.py` | HTML shell, CSS, serialisation, and data injection |
 | `dashboard_js.js` | Client-side rendering and Leaflet map |
-
 | `run.py` | CLI and build orchestration |
 
 The page includes a Standard / Sentinel theme switch. The optional Sentinel mission-control theme is loaded on demand from `/sentinel/` in the main site repository (`arashnass.github.io`); locally, or anywhere that path does not exist, the switch simply has no effect.
@@ -67,7 +66,7 @@ TLS verification is enabled by default. Dynamic text is escaped and embedded JSO
 - On every push to `main`.
 - Manually through `workflow_dispatch`.
 
-The headline cache (`headlines_cache.json`) is kept between runs with `actions/cache`, so GDELT is only asked about each event every few hours. `keepalive.yml` pushes an empty commit monthly so GitHub does not disable the schedule after 60 days of inactivity.
+The media-link cache (`media_cache.json`) is kept between runs with `actions/cache`, so Google News is only asked about each event every few hours. `keepalive.yml` pushes an empty commit monthly so GitHub does not disable the schedule after 60 days of inactivity.
 
 Production uses `python run.py --no-open --no-ai`, stages the generated briefing as `dist/index.html`, and deploys it with GitHub Pages. No Netlify configuration or build hook is used.
 

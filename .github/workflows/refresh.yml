@@ -31,12 +31,12 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Restore headline cache (keeps us within GDELT's rate limit)
+      - name: Restore media-link cache (keeps requests to Google News low)
         uses: actions/cache@v6
         with:
-          path: headlines_cache.json
-          key: headlines-${{ github.run_id }}
-          restore-keys: headlines-
+          path: media_cache.json
+          key: media-${{ github.run_id }}
+          restore-keys: media-
       - name: Build dashboard with live data
         run: python run.py --no-open --no-ai
       - name: Stage site
