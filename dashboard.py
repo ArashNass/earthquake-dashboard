@@ -10,42 +10,89 @@ from settings import ALERT_C, MMI_C, PAGER_D, JS_FILE
 
 HERE = Path(__file__).resolve().parent
 
-ERCC_UPGRADE_JS = """
+ERCC_UPGRADE_JS = r"""
 (function(){
-  var eonetUrl = 'https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=12';
-  var usgsUrl  = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson';
-  console.log('[disaster-alerts] fetching', eonetUrl, 'and', usgsUrl);
+  // Global alerts from three free, keyless feeds: USGS (significant earthquakes), UN GDACS (alerts of every
+  // hazard type, with RED / ORANGE / GREEN levels) and NASA EONET (open storms, volcanoes, floods, wildfires ...).
+  // Items are grouped by hazard, capped per hazard, ordered by severity and interleaved so the ticker always mixes types.
+  var DAY = 864e5;
+  var COLORS = {'Earthquake':'#d9534f','Tropical Cyclone':'#5b7fd6','Severe Storm':'#5b7fd6','Flood':'#1976d2','Volcano':'#ef6c00','Wildfire':'#e65100','Drought':'#b08900','Landslide':'#8d6e63','Sea and Lake Ice':'#4aa3c8','Snow':'#6aa5c8','Dust and Haze':'#a1887f','Temperature Extreme':'#c62828','Water Color':'#26a69a','Manmade':'#7e57c2'};
+  var CAP = {'Earthquake':5,'Tropical Cyclone':3,'Severe Storm':3,'Flood':4,'Volcano':3,'Wildfire':4,'Drought':2};
+  var EONET_CAT = {'Severe Storms':'Severe Storm','Volcanoes':'Volcano','Wildfires':'Wildfire','Floods':'Flood','Landslides':'Landslide','Drought':'Drought','Temperature Extremes':'Temperature Extreme','Earthquakes':'Earthquake'};
+  var GD_CAT = {TC:'Tropical Cyclone', FL:'Flood', VO:'Volcano', DR:'Drought', WF:'Wildfire'};
 
-  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function safeUrl(u){ try { var x = new URL(u); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : ''; } catch(e){ return ''; } }
+  function iso(ms){ return new Date(ms).toISOString().slice(0,10); }
+  function lvlOf(x){ x = (x || '').toLowerCase(); return x === 'red' ? 3 : x === 'orange' ? 2 : x === 'yellow' ? 1 : 0; }
+  function getJson(url, name){
+    var c = new AbortController(), t = setTimeout(function(){ c.abort(); }, 9000);
+    return fetch(url, { signal: c.signal }).then(function(r){
+      clearTimeout(t); console.log('[disaster-alerts]', name, 'status', r.status);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    }).then(function(txt){ return txt && txt.trim() ? JSON.parse(txt) : null; })
+      .catch(function(e){ clearTimeout(t); console.log('[disaster-alerts]', name, 'failed:', e.message || e); return null; });
+  }
+  function tidy(name, re, country){
+    var t = (name || '').replace(re, '').replace(/\s+/g, ' ').replace(/^[\s:\u2013\u2014-]+/, '').trim();
+    if (country && t && country.length < 34 && t.toLowerCase().indexOf(country.toLowerCase()) < 0 && country.toLowerCase().indexOf(t.toLowerCase()) < 0) t += ' (' + country + ')';
+    return t || country || name;
+  }
+  function buildAlerts(r){
+    var now = Date.now(), pool = [], gdTC = [];
+    ((r[0] && r[0].features) || []).forEach(function(f){            // USGS
+      var p = f.properties || {}, u = safeUrl(p.url), t = (p.title || p.place || '').trim();
+      if (u && t) pool.push({ cat:'Earthquake', title:t, link:u, lvl: lvlOf(p.alert) >= 2 ? lvlOf(p.alert) : 0, t:p.time || 0, m:p.mag || 0 });
+    });
+    [r[1], r[2]].forEach(function(d){                                // GDACS
+      ((d && d.features) || []).forEach(function(f){
+        var p = f.properties || {}, cat = GD_CAT[p.eventtype];
+        if (!cat || String(p.iscurrent) === 'false') return;
+        var t = Date.parse(p.fromdate + 'Z') || 0;
+        if (cat === 'Drought' && now - t > 60 * DAY) return;
+        if (cat === 'Wildfire' && lvlOf(p.alertlevel) < 2) return;
+        var u = safeUrl((p.url && p.url.report) || '');
+        var txt = tidy(p.name, /^(tropical cyclone|flood|eruption|volcano|drought|(wild|forest)\s?fire)\s*(in|:)?\s*/i, (p.country || '').trim());
+        if (!u || !txt) return;
+        if (cat === 'Tropical Cyclone') gdTC.push((p.name || '').toLowerCase());
+        pool.push({ cat:cat, title:txt, link:u, lvl:lvlOf(p.alertlevel), t:t, m:0 });
+      });
+    });
+    ((r[3] && r[3].events) || []).forEach(function(e){               // NASA EONET
+      var raw = (e.categories && e.categories[0] && e.categories[0].title) || 'Event', cat = EONET_CAT[raw] || raw;
+      var u = safeUrl(e.link || (e.sources && e.sources[0] && e.sources[0].url)), t = (e.title || '').trim();
+      if (!u || !t || cat === 'Earthquake' || /prescribed/i.test(t)) return;   // controlled burns are not alerts
+      var last = (e.geometry && e.geometry.length && e.geometry[e.geometry.length - 1].date) || '';
+      if (cat === 'Severe Storm'){                                    // skip storms GDACS already reports (it carries the alert level)
+        var nm = t.split(/\s+/).pop().toLowerCase();
+        if (nm.length > 3 && gdTC.some(function(g){ return g.indexOf(nm) >= 0; })) return;
+      }
+      var re = new RegExp('^' + cat.replace(/ /g, '\\s*') + 's?\\s*', 'i');
+      pool.push({ cat:cat, title:t.replace(re, '') || t, link:u, lvl:0, t:Date.parse(last) || 0, m:0 });
+    });
+    var groups = {};
+    pool.forEach(function(i){ (groups[i.cat] = groups[i.cat] || []).push(i); });
+    var cats = Object.keys(groups);
+    cats.forEach(function(c){
+      groups[c].sort(function(a, b){ return b.lvl - a.lvl || b.m - a.m || b.t - a.t; });
+      groups[c] = groups[c].slice(0, CAP[c] || 2);
+    });
+    cats.sort(function(a, b){ return groups[b][0].lvl - groups[a][0].lvl || groups[b].length - groups[a].length; });
+    var out = [], more = true, i = 0;
+    while (more && out.length < 30){ more = false; cats.forEach(function(c){ if (groups[c][i]){ out.push(groups[c][i]); more = true; } }); i++; }
+    return out;
+  }
 
-  var eonetItems = fetch(eonetUrl).then(function(r){
-    console.log('[disaster-alerts] EONET response status', r.status);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  }).then(function(data){
-    var events = (data && data.events) || [];
-    return events.map(function(ev){
-      var cat = (ev.categories && ev.categories[0] && ev.categories[0].title) || '';
-      var title = cat ? (cat + ': ' + ev.title) : ev.title;
-      return { title: (title || '').trim(), link: ev.link || (ev.sources && ev.sources[0] && ev.sources[0].url) || '', source: 'eonet' };
-    }).filter(function(it){ return it.title && it.link; });
-  }).catch(function(e){ console.log('[disaster-alerts] EONET failed:', e.message || e); return []; });
-
-  var usgsItems = fetch(usgsUrl).then(function(r){
-    console.log('[disaster-alerts] USGS response status', r.status);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
-  }).then(function(data){
-    var feats = (data && data.features) || [];
-    return feats.map(function(f){
-      var p = f.properties || {};
-      return { title: 'Earthquake: ' + (p.title || p.place || ''), link: p.url || '', source: 'usgs' };
-    }).filter(function(it){ return it.title && it.link; });
-  }).catch(function(e){ console.log('[disaster-alerts] USGS failed:', e.message || e); return []; });
-
-  Promise.all([eonetItems, usgsItems]).then(function(results){
-    var allItems = results[0].concat(results[1]);
-    console.log('[disaster-alerts] combined items:', allItems.length, '(EONET:', results[0].length, ', USGS:', results[1].length, ')');
+  var G = 'https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH?', to = iso(Date.now() + DAY);
+  Promise.all([
+    getJson('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_week.geojson', 'USGS'),
+    getJson(G + 'eventlist=TC;FL;VO;DR;WF&alertlevel=Orange;Red&fromdate=' + iso(Date.now() - 21 * DAY) + '&todate=' + to, 'GDACS serious'),
+    getJson(G + 'eventlist=TC;FL;VO&alertlevel=Green&fromdate=' + iso(Date.now() - 7 * DAY) + '&todate=' + to, 'GDACS recent'),
+    getJson('https://eonet.gsfc.nasa.gov/api/v3/events?status=open&limit=30', 'EONET')
+  ]).then(function(results){
+    var allItems = buildAlerts(results);
+    console.log('[disaster-alerts] combined items:', allItems.length);
 
     var scroll = document.getElementById('ea-scroll');
     var track = scroll ? scroll.parentElement : null;
@@ -73,8 +120,22 @@ ERCC_UPGRADE_JS = """
     var SPEED = 30; // px per second
     var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    var STORMS = {'Tropical Cyclone':1, 'Severe Storm':1}, MAIN = {'Earthquake':1,'Tropical Cyclone':1,'Severe Storm':1,'Flood':1,'Volcano':1,'Wildfire':1};
+    function matches(it, f){
+      if (!f || f === 'all') return true;
+      if (f === 'serious') return it.lvl >= 2;
+      if (f === 'storm') return !!STORMS[it.cat];
+      if (f === 'other') return !MAIN[it.cat];
+      return it.cat === f;
+    }
+    if (filterEl){                                   // only offer filters that currently have alerts
+      Array.prototype.slice.call(filterEl.options).forEach(function(o){
+        if (o.value !== 'all' && !allItems.some(function(it){ return matches(it, o.value); })) o.parentNode.removeChild(o);
+      });
+    }
+
     function render(filter){
-      items = (!filter || filter === 'all') ? allItems : allItems.filter(function(it){ return it.source === filter; });
+      items = allItems.filter(function(it){ return matches(it, filter); });
       offset = 0; target = null;
       scroll.style.transform = 'translate3d(0,0,0)';
       if (!items.length){
@@ -82,7 +143,8 @@ ERCC_UPGRADE_JS = """
         return;
       }
       var chips = items.map(function(it){
-        return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener">' + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
+        var lv = it.lvl >= 3 ? '<span class="ea-lvl red">RED</span>' : it.lvl === 2 ? '<span class="ea-lvl orange">ORANGE</span>' : '';
+        return '<a class="ea-item" href="' + esc(it.link) + '" target="_blank" rel="noopener"><span class="ea-cat" style="--ac:' + (COLORS[it.cat] || '#6b7385') + '">' + esc(it.cat) + '</span>' + lv + esc(it.title) + '</a><span class="ea-sep">&#8226;</span>';
       }).join('');
       // Duplicated once so the loop point (wrapping at the halfway mark) is seamless.
       scroll.innerHTML = chips + chips;
@@ -294,6 +356,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f4f6fb;font-size:13
 .ea-item{color:#7f1d1d;text-decoration:none;font-size:14px;font-weight:600;padding:0 4px}
 .ea-item:hover{color:#dc2626;text-decoration:underline}
 .ea-sep{color:#e6a5a5;margin:0 26px;font-size:12px}
+.ea-cat{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--ac,#7f1d1d);margin-right:7px}
+.ea-lvl{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.07em;padding:2px 6px;border-radius:5px;line-height:1.3;color:#fff;margin-right:7px;vertical-align:1px}
+.ea-lvl.red{background:#c62828}
+.ea-lvl.orange{background:#b45309}
+html.sx .ea-cat{color:color-mix(in srgb,var(--ac,#ff8fa3) 55%,#fff)}
 .ea-more{flex-shrink:0;color:#b91c1c;font-size:10.5px;font-weight:700;text-decoration:none;white-space:nowrap}
 .ea-more:hover{color:#7f1d1d}
 .ea-filter{flex-shrink:0;background:#fff;color:#7f1d1d;border:1px solid #fca5a5;border-radius:5px;font-size:11px;font-weight:700;padding:5px 9px;cursor:pointer}
@@ -477,9 +544,14 @@ def build(top_events, all_data, now_str):
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>'
         '  </div>'
         '  <select class="ea-filter" id="ea-filter">'
-        '    <option value="all">All Sources</option>'
-        '    <option value="eonet">Wildfires, Storms &amp; More</option>'
-        '    <option value="usgs">Earthquakes Only</option>'
+        '    <option value="all">All hazards</option>'
+        '    <option value="serious">Serious alerts (Orange &amp; Red)</option>'
+        '    <option value="Earthquake">Earthquakes</option>'
+        '    <option value="storm">Cyclones &amp; storms</option>'
+        '    <option value="Flood">Floods</option>'
+        '    <option value="Volcano">Volcanoes</option>'
+        '    <option value="Wildfire">Wildfires</option>'
+        '    <option value="other">Other</option>'
         '  </select>'
         "</div>",
         "<script>" + ERCC_UPGRADE_JS + "</script>",
