@@ -365,8 +365,8 @@ function initMap() {
   // touch devices: one-finger drag scrolls the page (the map is a big share of a phone screen); pinch and +/- still work
   _map = L.map('leaflet-map', { zoomControl: false, dragging: !L.Browser.mobile }).setView([lat, lon], 7);
   L.control.zoom({ position: 'bottomright' }).addTo(_map);
-  _base = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    { attribution: 'OpenStreetMap contributors', maxZoom: 19 });
+  _base = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    { attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 19 });
   _base.addTo(_map);
 
   L.circle([lat, lon], { radius: 5000, color: color, fillColor: color, fillOpacity: .4, weight: 3, interactive: false }).addTo(_map);
