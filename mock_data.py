@@ -75,8 +75,18 @@ def mock_first_event():
            "alone would suggest, with direct insured loss potential in the USD 500M-2B range. "
            "Key uncertainties include aftershock sequence duration (18% M7+ probability in one week), "
            "business interruption from port and airport closures, and political risk affecting claims settlement.")
+    intel = [
+        {"label": "USGS solution", "value": "Reviewed by a seismologist", "tone": "ok"},
+        {"label": "Tsunami", "value": "No tsunami message issued", "tone": "info"},
+        {"label": "Felt reports", "value": "1,240 'Did You Feel It' - max intensity 8.1", "tone": "info"},
+        {"label": "UN GDACS alert", "value": "Red - impact estimate", "tone": "alert", "url": "https://www.gdacs.org"},
+        {"label": "Population exposed", "value": "3.8 million (in MMI\u2265VI)", "tone": "warn"},
+        {"label": "Aftershocks", "value": "55 so far (M2.5+, within 150 km) - largest M5.4", "tone": "warn"},
+        {"label": "EMSC cross-check", "value": "Agrees: M7.5, 10 km (USGS M7.5, 10 km)", "tone": "ok"},
+        {"label": "USGS products", "value": "ShakeMap - PAGER - Moment tensor - Finite fault", "tone": "info"},
+    ]
     return dict(ev=ev, sm=sm, aftershock=afs, focal=foc, historical=his,
-                weather=wea, building=bld, news=news, narrative=nar)
+                weather=wea, building=bld, news=news, intel=intel, narrative=nar)
 
 
 def mock_stub(e):

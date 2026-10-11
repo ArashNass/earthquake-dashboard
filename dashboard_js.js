@@ -146,6 +146,7 @@ function buildReport(data) {
   var wea = data.weather;
   var bld = data.building;
   var nws = data.news || [];
+  var intel = data.intel || [];
   var nar = data.narrative;
 
   var mmi  = parseFloat(ev.mmi)   || 0;
@@ -202,6 +203,20 @@ function buildReport(data) {
     + '</div>';
 
   // ── Intelligence and News ──
+  // Part 1: verified facts about the event. Part 2: reports/headlines that match it (or a plain "none yet" line).
+  var TONE = { ok: '#2e7d32', info: '#1a1f36', warn: '#e65100', alert: '#c62828' };
+  var factsH = '';
+  for (var fi = 0; fi < intel.length; fi++) {
+    var f    = intel[fi];
+    var furl = safeUrl(f.url);
+    var fval = furl
+      ? '<a href="' + esc(furl) + '" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;text-decoration-color:#cbd5e1">' + esc(f.value) + '</a>'
+      : esc(f.value);
+    factsH += '<div class="sx-kv" style="display:flex;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid #e2e6f0;font-size:12px">'
+      + '<span style="color:#64748b;flex:0 0 auto">' + esc(f.label) + '</span>'
+      + '<span style="font-weight:600;text-align:right;color:' + (TONE[f.tone] || TONE.info) + '">' + fval + '</span>'
+      + '</div>';
+  }
   var newsH = '';
   for (var ni = 0; ni < nws.length; ni++) {
     var n    = nws[ni];
@@ -217,9 +232,14 @@ function buildReport(data) {
       + ntitle + nsumm
       + '</div>';
   }
-  var newsPanel = newsH
-    ? '<div style="margin-bottom:12px">' + panel('Intelligence and News', newsH) + '</div>'
-    : '';
+  var subHead = function (t) {
+    return '<div style="font-size:9px;font-weight:700;color:#1565c0;text-transform:uppercase;letter-spacing:.5px;margin:0 0 2px">' + t + '</div>';
+  };
+  var newsBody = '';
+  if (factsH) newsBody += '<div style="margin-bottom:12px">' + subHead('Event facts') + factsH + '</div>';
+  newsBody += subHead('Reports and headlines')
+    + (newsH || '<div style="font-size:12px;color:#64748b;padding:8px 0">No independent reports or headlines published for this event yet.</div>');
+  var newsPanel = '<div style="margin-bottom:12px">' + panel('Intelligence and News', newsBody) + '</div>';
 
   // ── Event Parameters ──
   var ft = foc && foc.type ? foc.type : 'Pending';

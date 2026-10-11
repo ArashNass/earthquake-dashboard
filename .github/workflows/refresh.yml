@@ -31,6 +31,12 @@ jobs:
           python-version: "3.12"
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Restore headline cache (keeps us within GDELT's rate limit)
+        uses: actions/cache@v4
+        with:
+          path: headlines_cache.json
+          key: headlines-${{ github.run_id }}
+          restore-keys: headlines-
       - name: Build dashboard with live data
         run: python run.py --no-open --no-ai
       - name: Stage site

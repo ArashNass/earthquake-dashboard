@@ -21,7 +21,8 @@ sys.path.insert(0, str(HERE))
 from settings   import OUTPUT_FILE, REFRESH_MINUTES, QUERY_DAYS, QUERY_LIMIT, ALERT_C
 from fetcher    import (fetch_top_events, fetch_detail, enrich,
                         extract_shakemap, extract_aftershock, extract_focal,
-                        fetch_historical, fetch_weather, fetch_news, fetch_ai,
+                        fetch_historical, fetch_weather, fetch_news, fetch_headlines,
+                        fetch_intel, fetch_ai,
                         get_building_stock)
 from mock_data  import MOCK_EVENTS, mock_first_event, mock_stub
 from dashboard  import build
@@ -55,11 +56,15 @@ def load_one(stub, no_ai=False):
                 ev["lat"], ev["lon"], ev["event_id"], before_iso=ev.get("t_iso"))), daemon=True),
             threading.Thread(target=run_fetch, args=("wea", lambda: fetch_weather(ev["lat"], ev["lon"])), daemon=True),
             threading.Thread(target=run_fetch, args=("nws", lambda: fetch_news(ev)), daemon=True),
+            threading.Thread(target=run_fetch, args=("intel", lambda: fetch_intel(ev, detail)), daemon=True),
         ]
-        for t in threads:
+        # GDELT only allows one request every 5 s, so headlines queue up across events and get a longer wait.
+        hdl = threading.Thread(target=run_fetch, args=("hdl", lambda: fetch_headlines(ev)), daemon=True)
+        for t in threads + [hdl]:
             t.start()
         for t in threads:
             t.join(timeout=20)
+        hdl.join(timeout=85)
 
         afs = results.get("afs")
         foc = results.get("foc")
@@ -71,7 +76,8 @@ def load_one(stub, no_ai=False):
                     aftershock=afs, focal=foc,
                     historical=results.get("his") or [],
                     weather=wea, building=bld,
-                    news=results.get("nws") or [],
+                    news=(results.get("nws") or []) + (results.get("hdl") or []),
+                    intel=results.get("intel") or [],
                     narrative=nar)
     except Exception as ex:
         print(f"    [WARN] {stub['id']}: {ex} - detail feed failed, marking unavailable (no invented data)")
@@ -88,7 +94,7 @@ def load_one(stub, no_ai=False):
             },
             "sm": {"mmi_url": "", "pga_url": ""},
             "aftershock": None, "focal": None, "historical": [],
-            "weather": None, "building": None, "news": [], "narrative": None,
+            "weather": None, "building": None, "news": [], "intel": [], "narrative": None,
             "data_unavailable": True, "error_detail": str(ex),
         }
 

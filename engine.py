@@ -95,6 +95,7 @@ def enrich(detail):
                         else f"{int(age_h / 24)}d ago" if age_h >= 48
                         else t.strftime("%d %b %Y")),
         "t_iso":       t.strftime("%Y-%m-%d"),
+        "t_utc":       t.strftime("%Y-%m-%dT%H:%M:%S"),
         "alert_color": ac,
         "alert_lbl":   alert or "N/A",
         "pager_alert": alert or "N/A",

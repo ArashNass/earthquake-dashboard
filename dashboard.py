@@ -200,6 +200,7 @@ def serialize(data):
         "weather":    data.get("weather"),
         "building":   data.get("building"),
         "news":       data.get("news") or [],
+        "intel":      data.get("intel") or [],
         "narrative":  data.get("narrative"),
         "data_unavailable": bool(data.get("data_unavailable")),
     }
@@ -217,7 +218,7 @@ SENTINEL_LOADER = r"""<script>
    (/sentinel/) are only fetched when Sentinel is chosen (or was chosen last time). ?theme=sentinel / ?theme=off
    also work as links. Keep this copy in sync with the pages. */
 (function(){
-  var K='sx-theme',B='/sentinel/',V='5',d=document,w=window,loading=0,pending=null;
+  var K='sx-theme',B='/sentinel/',V='6',d=document,w=window,loading=0,pending=null;
   function g(k){try{return localStorage.getItem(k)}catch(e){return null}}
   function s(k,v){try{localStorage.setItem(k,v)}catch(e){}}
   if(/[?&]theme=sentinel(&|$)/.test(location.search))s(K,'sentinel');

@@ -1,10 +1,15 @@
 # fetcher.py - All HTTP data fetching. Enrichment lives in engine.py.
 
+import json
+import math
 import os
 import re
 import threading
+import time
+import html as _html
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta, date
+from pathlib import Path
 
 import requests
 from requests.adapters import HTTPAdapter, Retry
@@ -16,7 +21,7 @@ from engine import enrich, mmi_to_pga_pctg  # re-exported for run.py
 
 __all__ = ["fetch_top_events", "fetch_detail", "enrich", "extract_shakemap",
            "extract_aftershock", "extract_focal", "fetch_historical",
-           "fetch_weather", "fetch_news", "fetch_ai",
+           "fetch_weather", "fetch_news", "fetch_headlines", "fetch_intel", "fetch_ai",
            "get_building_stock", "get_country"]
 
 if not SSL:
@@ -220,19 +225,56 @@ def fetch_weather(lat, lon):
     except Exception:
         return None
 
-# ── Intelligence (5 sources, parallel) ───────────────────────────────────────
+# ── Intelligence ──────────────────────────────────────────────────────────────
+# Two parts, both keyless:
+#   fetch_intel     - verified event facts (USGS record, aftershocks, GDACS, EMSC cross-check)
+#   fetch_news      - reports about *this* event (GEM, ReliefWeb, validated Wikipedia)
+#   fetch_headlines - recent news headlines (GDELT, rate-limited to 1 request / 5 s)
+
+def _km(lat1, lon1, lat2, lon2):
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    a = (math.sin((p2 - p1) / 2) ** 2
+         + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2)
+    return 2 * 6371.0 * math.asin(math.sqrt(a))
+
+
+def _event_dt(ev):
+    try:
+        return datetime.strptime(ev.get("t_utc") or "", "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+    except ValueError:
+        pass
+    try:
+        return datetime.strptime(ev.get("t_iso") or "", "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+
+
+def _wiki_matches(extract, mag, dt):
+    """Accept a Wikipedia summary only if it describes THIS event: same year and month,
+    a day within +/-1 of the event, and a stated magnitude within 0.5."""
+    if not extract or dt is None or str(dt.year) not in extract:
+        return False
+    month = dt.strftime("%B")
+    days = {int(d) for d in re.findall(r"\b(\d{1,2})\s+" + month + r"\b", extract)}
+    days |= {int(d) for d in re.findall(month + r"\s+(\d{1,2})\b", extract)}
+    if not any(abs(d - dt.day) <= 1 for d in days):
+        return False
+    mags = [float(x) for x in re.findall(r"(?:Mw[wsb]?|Mww|\bM|magnitude)\s*(\d\.\d)", extract)]
+    return any(abs(m - mag) <= 0.5 for m in mags)
+
 
 def fetch_news(ev):
-    """Fetch intelligence from 5 parallel sources. No API keys needed."""
+    """Reports about this specific event. No API keys needed. Items that cannot be
+    tied to the event (wrong year, month or magnitude) are dropped, never shown."""
     news = []
     lock = threading.Lock()
 
     eid      = ev["event_id"]
     mag      = ev["mag"]
     place    = ev["place"]
-    alert    = ev.get("pager_alert", "")
     country  = get_country(place)
-    year     = (ev.get("t_iso") or "")[:4] or str(datetime.now(timezone.utc).year)
+    dt       = _event_dt(ev)
+    year     = str(dt.year) if dt else str(datetime.now(timezone.utc).year)
     event_dt = ev.get("t_iso") or date.today().isoformat()
 
     def add(item):
@@ -240,7 +282,7 @@ def fetch_news(ev):
             with lock:
                 news.append(item)
 
-    # 1. GEM Foundation
+    # 1. GEM Foundation post-event assessment (exists only for major events)
     def _gem():
         try:
             r = get(f"https://www.globalquakemodel.org/post-event-info/{eid}", timeout=10)
@@ -259,9 +301,10 @@ def fetch_news(ev):
         except Exception:
             pass
 
-    # 2. ReliefWeb API
+    # 2. ReliefWeb (needs an approved appname since 2025; quietly yields nothing without one)
     def _reliefweb():
         try:
+            appname = os.environ.get("RELIEFWEB_APPNAME", "eq-dashboard")
             payload = {
                 "query": {"value": "earthquake"},
                 "filter": {"operator": "AND", "conditions": [
@@ -272,8 +315,7 @@ def fetch_news(ev):
                 "sort": [{"field": "date", "direction": "desc"}],
                 "limit": 3,
             }
-            r = post("https://api.reliefweb.int/v2/reports?appname=eq-dashboard",
-                     json=payload, timeout=12)
+            r = post(f"https://api.reliefweb.int/v2/reports?appname={appname}", json=payload, timeout=12)
             if r.status_code != 200:
                 return
             for item in r.json().get("data", []):
@@ -289,89 +331,281 @@ def fetch_news(ev):
         except Exception:
             pass
 
-    # 3. Wikipedia
+    # 3. Wikipedia - only an article that matches this event's date and magnitude
     def _wikipedia():
         try:
-            title = f"{year}_{country}_earthquakes".replace(" ", "_")
-            r = get(f"https://en.wikipedia.org/api/rest_v1/page/summary/{title}", timeout=10)
-            if r.status_code != 200:
+            c = country.replace(" ", "_")
+            titles = [f"{year}_{c}_earthquake", f"{year}_{c}_earthquakes"]
+            try:
                 r2 = get("https://en.wikipedia.org/w/api.php",
                          params={"action": "opensearch", "search": f"{year} {country} earthquake",
-                                 "limit": 1, "format": "json"},
-                         timeout=8)
-                if r2.status_code != 200 or not r2.json()[1]:
-                    return
-                title = r2.json()[1][0].replace(" ", "_")
+                                 "limit": 5, "format": "json"}, timeout=8)
+                if r2.status_code == 200:
+                    titles += [t.replace(" ", "_") for t in r2.json()[1]]
+            except Exception:
+                pass
+            seen = set()
+            for title in titles:
+                if title in seen:
+                    continue
+                seen.add(title)
                 r = get(f"https://en.wikipedia.org/api/rest_v1/page/summary/{title}", timeout=8)
                 if r.status_code != 200:
+                    continue
+                d = r.json()
+                extract = d.get("extract", "")
+                if len(extract) > 60 and _wiki_matches(extract, float(mag), dt):
+                    sentences = extract.split(". ")
+                    summary = ". ".join(sentences[:2]).strip()
+                    if not summary.endswith("."):
+                        summary += "."
+                    add({"source": "Wikipedia", "headline": d.get("title", ""), "summary": summary[:300],
+                         "url": d.get("content_urls", {}).get("desktop", {}).get("page", "")})
                     return
-            d       = r.json()
-            extract = d.get("extract", "")
-            if len(extract) > 60:
-                sentences = extract.split(". ")
-                summary = ". ".join(sentences[:2]).strip()
-                if not summary.endswith("."):
-                    summary += "."
-                add({"source": "Wikipedia",
-                     "headline": d.get("title", ""),
-                     "summary": summary[:300],
-                     "url": d.get("content_urls", {}).get("desktop", {}).get("page", "")})
         except Exception:
             pass
 
-    # 4. EMSC
-    def _emsc():
-        try:
-            r = get(f"https://www.seismicportal.eu/fdsnws/event/1/query"
-                    f"?format=json&lat={ev['lat']}&lon={ev['lon']}"
-                    f"&maxradius=2&minmag={max(5.0, float(mag) - 1.0)}&limit=3",
-                    timeout=10)
-            if r.status_code != 200:
-                return
-            feats = r.json().get("features", [])
-            if feats:
-                p = feats[0]["properties"]
-                add({"source": "EMSC",
-                     "headline": f"Independent parameters: M{p.get('mag')} {p.get('flynn_region', '')}",
-                     "summary": f"Depth {p.get('depth')} km. Agency: {p.get('auth', 'EMSC')}. Independent European verification.",
-                     "url": f"https://www.seismicportal.eu/eventdetails.html?unid={p.get('unid', '')}"})
-        except Exception:
-            pass
-
-    # 5. GDACS + PAGER
-    def _gdacs():
-        try:
-            r    = get("https://www.gdacs.org/xml/rss_eq.xml", timeout=10)
-            root = ET.fromstring(r.content)
-            clow = country.lower()
-            for item in root.iter("item"):
-                title = item.findtext("title", "")
-                link  = item.findtext("link", "")
-                desc  = item.findtext("description", "")
-                if clow and (clow in title.lower() or clow in desc.lower()):
-                    add({"source": "UN GDACS",
-                         "headline": title[:120],
-                         "summary": re.sub(r'<[^>]+>', "", desc)[:200].strip(),
-                         "url": link})
-                    break
-        except Exception:
-            pass
-        if alert in ("RED", "ORANGE"):
-            add({"source": "USGS PAGER",
-                 "headline": f"{alert} Alert - {'Extreme' if alert == 'RED' else 'Significant'} losses expected",
-                 "summary": f"PAGER fatality and economic loss model for M{mag} {place}.",
-                 "url": f"https://earthquake.usgs.gov/earthquakes/eventpage/{eid}/pager"})
-
-    threads = [threading.Thread(target=fn, daemon=True)
-               for fn in (_gem, _reliefweb, _wikipedia, _emsc, _gdacs)]
+    threads = [threading.Thread(target=fn, daemon=True) for fn in (_gem, _reliefweb, _wikipedia)]
     for t in threads:
         t.start()
     for t in threads:
-        t.join(timeout=15)
+        t.join(timeout=20)
 
     news.sort(key=lambda x: next(
         (i for i, s in enumerate(NEWS_SOURCE_ORDER) if s == x["source"]), 99))
-    return news[:6]
+    return news[:4]
+
+
+_gdelt_lock = threading.Lock()
+_gdelt_last = [0.0]
+_gdelt_t0 = [0.0]
+_QUAKE_WORDS = ("earthquake", "quake", "tremor", "seismic", "temblor", "sismo", "terremoto")
+_CACHE_FILE = Path(__file__).resolve().parent / "headlines_cache.json"
+_cache_lock = threading.Lock()
+_CACHE_OK_TTL, _CACHE_FAIL_TTL = 6 * 3600, 30 * 60
+
+
+def _cache_get(eid):
+    try:
+        with _cache_lock:
+            return json.loads(_CACHE_FILE.read_text("utf-8")).get(eid)
+    except Exception:
+        return None
+
+
+def _cache_put(eid, items, ok):
+    try:
+        with _cache_lock:
+            try:
+                data = json.loads(_CACHE_FILE.read_text("utf-8"))
+            except Exception:
+                data = {}
+            data[eid] = {"t": time.time(), "ok": ok, "items": items}
+            # keep the file small: drop entries older than 4 days
+            data = {k: v for k, v in data.items() if time.time() - v.get("t", 0) < 4 * 86400}
+            _CACHE_FILE.write_text(json.dumps(data), "utf-8")
+    except Exception:
+        pass
+
+
+def fetch_headlines(ev):
+    """Up to 3 recent news headlines about this earthquake from GDELT (free, no key).
+    GDELT allows one request every 5 seconds and throttles shared IPs hard, so results are
+    cached per event (6 h; 30 min after a failed call) and a failure never breaks the build."""
+    dt = _event_dt(ev)
+    country = get_country(ev["place"])
+    eid = ev.get("event_id", "")
+    if not dt or not country:
+        return []
+    if (datetime.now(timezone.utc) - dt).days > 80:   # GDELT's news index only covers ~3 months
+        return []
+
+    cached = _cache_get(eid)
+    if cached:
+        ttl = _CACHE_OK_TTL if cached.get("ok") else _CACHE_FAIL_TTL
+        if time.time() - cached.get("t", 0) < ttl:
+            return cached.get("items") or []
+
+    params = {"query": f'earthquake "{country}" sourcelang:english', "mode": "artlist", "format": "json",
+              "maxrecords": 15, "sort": "hybridrel", "startdatetime": dt.strftime("%Y%m%d%H%M%S")}
+    data = None
+    with _gdelt_lock:
+        if not _gdelt_t0[0]:
+            _gdelt_t0[0] = time.time()
+        if time.time() - _gdelt_t0[0] > 75:   # queue budget: never hold the build up for headlines
+            return (cached or {}).get("items") or []
+        wait = 5.6 - (time.time() - _gdelt_last[0])
+        if wait > 0:
+            time.sleep(wait)
+        _gdelt_last[0] = time.time()
+        try:
+            r = get("https://api.gdeltproject.org/api/v2/doc/doc", params=params, timeout=12)
+            if r.status_code == 200:
+                data = r.json()
+        except Exception:
+            data = None
+    if data is None:                       # throttled / unreachable: remember, keep any older result
+        _cache_put(eid, (cached or {}).get("items") or [], ok=False)
+        return (cached or {}).get("items") or []
+
+    out, seen = [], set()
+    mag_s = f"{float(ev['mag']):.1f}"
+    for a in data.get("articles", []):
+        title = _html.unescape((a.get("title") or "").strip())
+        tl = title.lower()
+        key = re.sub(r"\W+", "", tl)[:40]
+        if (not title or key in seen or not any(w in tl for w in _QUAKE_WORDS)
+                or not (country.lower() in tl or mag_s in tl)):
+            continue
+        seen.add(key)
+        sd = a.get("seendate", "")
+        when = f"{sd[6:8]}/{sd[4:6]}/{sd[:4]}" if len(sd) >= 8 else ""
+        out.append({"source": a.get("domain", "news"), "headline": title[:140],
+                    "summary": ("Published " + when) if when else "", "url": a.get("url", "")})
+        if len(out) == 3:
+            break
+    _cache_put(eid, out, ok=True)
+    return out
+
+
+def fetch_intel(ev, detail):
+    """Verified, event-specific facts. Each fact: {label, value, tone, url}. tone is
+    ok / info / warn / alert. Anything that cannot be confirmed is simply omitted."""
+    dt = _event_dt(ev)
+    mag, lat, lon = float(ev["mag"]), float(ev["lat"]), float(ev["lon"])
+    p = (detail or {}).get("properties") or {}
+    prods = p.get("products") or {}
+    res = {}
+
+    def run(key, fn):
+        try:
+            res[key] = fn()
+        except Exception:
+            res[key] = None
+
+    def usgs_review():
+        st = (p.get("status") or "").lower()
+        if st == "reviewed":
+            return {"label": "USGS solution", "value": "Reviewed by a seismologist", "tone": "ok"}
+        if st:
+            return {"label": "USGS solution", "value": "Automatic - may be revised", "tone": "warn"}
+
+    def felt():
+        n, cdi = int(p.get("felt") or 0), p.get("cdi")
+        if n:
+            tail = f" - max intensity {float(cdi):.1f}" if cdi else ""
+            return {"label": "Felt reports", "value": f"{n:,} 'Did You Feel It'{tail}", "tone": "info",
+                    "url": ev.get("url", "") and ev["url"] + "/dyfi"}
+        return {"label": "Felt reports", "value": "None submitted yet", "tone": "info"}
+
+    def model_products():
+        names = [("shakemap", "ShakeMap"), ("losspager", "PAGER"), ("moment-tensor", "Moment tensor"),
+                 ("finite-fault", "Finite fault"), ("ground-failure", "Ground failure")]
+        have = [lbl for key, lbl in names if prods.get(key)]
+        if have:
+            return {"label": "USGS products", "value": " - ".join(have), "tone": "info", "url": ev.get("url", "")}
+
+    def aftershocks():
+        if not dt:
+            return None
+        start = (dt + timedelta(seconds=2)).strftime("%Y-%m-%dT%H:%M:%S")
+        base = (f"?format=geojson&starttime={start}&latitude={lat}&longitude={lon}"
+                f"&maxradiuskm=150&minmagnitude=2.5")
+        n = int(get("https://earthquake.usgs.gov/fdsnws/event/1/count" + base, timeout=12).json().get("count", 0))
+        if n == 0:
+            return {"label": "Aftershocks", "value": "None recorded (M2.5+, within 150 km)", "tone": "info"}
+        top = get("https://earthquake.usgs.gov/fdsnws/event/1/query" + base + "&orderby=magnitude&limit=1",
+                  timeout=12).json().get("features", [])
+        big = float((top[0]["properties"].get("mag") if top else 0) or 0)
+        tone = "warn" if big >= mag - 1.2 else "info"
+        return {"label": "Aftershocks", "value": f"{n:,} so far (M2.5+, within 150 km) - largest M{big:.1f}", "tone": tone}
+
+    def gdacs():
+        if not dt:
+            return None
+        r = get("https://www.gdacs.org/gdacsapi/api/events/geteventlist/SEARCH"
+                f"?eventlist=EQ&fromdate={(dt - timedelta(days=1)).date()}&todate={(dt + timedelta(days=1)).date()}"
+                "&alertlevel=green;orange;red", timeout=15)
+        best = None
+        for f in r.json().get("features", []):
+            fp = f.get("properties") or {}
+            c = (f.get("geometry") or {}).get("coordinates") or []
+            try:
+                fdt = datetime.strptime(fp.get("fromdate", ""), "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+                sev = float((fp.get("severitydata") or {}).get("severity"))
+                d = _km(lat, lon, c[1], c[0])
+            except (TypeError, ValueError, IndexError):
+                continue
+            if d <= 150 and abs(sev - mag) <= 0.6 and abs((fdt - dt).total_seconds()) <= 10800:
+                if best is None or d < best[0]:
+                    best = (d, fp)
+        if not best:
+            return None
+        fp = best[1]
+        level = (fp.get("alertlevel") or "").title()
+        out = [{"label": "UN GDACS alert", "value": f"{level} - impact estimate", "tone":
+                {"Red": "alert", "Orange": "warn", "Green": "ok"}.get(level, "info"),
+                "url": (fp.get("url") or {}).get("report", "")}]
+        try:
+            d2 = get("https://www.gdacs.org/gdacsapi/api/events/geteventdata?eventtype=EQ"
+                     f"&eventid={fp.get('eventid')}", timeout=15).json()
+            q = (((d2.get("features") or [{}])[0].get("properties")) or d2.get("properties") or {}).get("earthquakedetails") or {}
+            pop = (q.get("shakepopdescription") or "").strip()
+            if pop and not pop.startswith("0"):
+                out.append({"label": "Population exposed", "value": pop.replace(">=", "≥"), "tone": "warn"
+                            if level in ("Orange", "Red") else "info"})
+            ts = float(q.get("tsmaxheight") or 0)
+            if ts >= 0.3:
+                out.append({"label": "Modelled tsunami", "value": f"Up to ~{ts:.1f} m wave height", "tone": "warn"})
+        except Exception:
+            pass
+        return out
+
+    def emsc():
+        if not dt:
+            return None
+        t0, t1 = (dt - timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%S"), (dt + timedelta(hours=3)).strftime("%Y-%m-%dT%H:%M:%S")
+        r = get("https://www.seismicportal.eu/fdsnws/event/1/query?format=json"
+                f"&starttime={t0}&endtime={t1}&lat={lat}&lon={lon}&maxradius=1.5&minmag={max(2.0, mag - 1.5)}&limit=10",
+                timeout=12)
+        best = None
+        for f in r.json().get("features", []):
+            fp = f.get("properties") or {}
+            try:
+                score = abs(float(fp["mag"]) - mag)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if best is None or score < best[0]:
+                best = (score, fp)
+        if not best or best[0] > 1.0:
+            return None
+        fp = best[1]
+        em, ed = float(fp["mag"]), float(fp.get("depth") or 0)
+        agree = best[0] <= 0.3
+        verb = "Agrees" if agree else "Differs"
+        return {"label": "EMSC cross-check", "tone": "ok" if agree else "warn",
+                "value": f"{verb}: M{em:.1f}, {ed:.0f} km (USGS M{mag:.1f}, {float(ev['depth']):.0f} km)",
+                "url": f"https://www.seismicportal.eu/eventdetails.html?unid={fp.get('unid', '')}"}
+
+    threads = [threading.Thread(target=run, args=(k, fn), daemon=True)
+               for k, fn in (("after", aftershocks), ("gdacs", gdacs), ("emsc", emsc))]
+    for t in threads:
+        t.start()
+    review, fl, prod = usgs_review(), felt(), model_products()
+    for t in threads:
+        t.join(timeout=30)
+
+    gd = res.get("gdacs") or []
+    tsu_tone, tsu_val = ("alert", "Tsunami message issued by NOAA") if ev.get("tsunami") else ("info", "No tsunami message issued")
+    for g in gd:
+        if g["label"] == "Modelled tsunami":
+            tsu_val += f" - modelled up to ~{g['value'].split('~')[1].split(' ')[0]} m"
+            tsu_tone = "alert" if ev.get("tsunami") else "warn"
+    facts = [review, {"label": "Tsunami", "value": tsu_val, "tone": tsu_tone}, fl]
+    facts += [g for g in gd if g["label"] != "Modelled tsunami"]
+    facts += [res.get("after"), res.get("emsc"), prod]
+    return [f for f in facts if f]
+
 
 # ── AI narrative ──────────────────────────────────────────────────────────────
 
