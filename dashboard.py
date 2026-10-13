@@ -617,7 +617,7 @@ def build(top_events, all_data, now_str):
         # Placed here, as the last item inside .app-shell (flex-shrink:0), so it
         # sits at the bottom of the fixed-height app view instead of under the header.
         """<footer class="site-ft"><style>
-.site-ft{background:#0f2350;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;font-family:Inter,'Segoe UI',system-ui,sans-serif}
+.site-ft{background:#0f2350;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;line-height:normal;font-family:Inter,'Segoe UI',system-ui,sans-serif}
 .site-ft .ft-in{max-width:1080px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:14px 24px}
 .site-ft .ft-copy{font-size:12.5px;color:#fff}
 .site-ft .ft-links{display:flex;align-items:center;gap:16px}
