@@ -582,7 +582,7 @@ def build(top_events, all_data, now_str):
         '    <button class="ea-nav" id="ea-next" type="button" title="Next alert" aria-label="Next alert" disabled>'
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>'
         '  </div>'
-        '  <select class="ea-filter" id="ea-filter">'
+        '  <select class="ea-filter" id="ea-filter" aria-label="Filter disaster alerts">'
         '    <option value="all">All hazards</option>'
         '    <option value="serious">Serious alerts (Orange &amp; Red)</option>'
         '    <option value="Earthquake">Earthquakes</option>'
@@ -600,7 +600,7 @@ def build(top_events, all_data, now_str):
         "  </div>",
         '  <div style="font-size:11px;color:#64748b;text-align:right"><span style="font-weight:600;color:#1a1f36">Last update:</span> ' + html.escape(now_str) + "</div>",
         "</div>",
-        '<div class="body">',
+        '<div class="body" role="main">',
         '  <div class="sidebar">',
         '    <div class="sb-hdr"><div class="sb-title">Top Events - Last 90 Days</div></div>',
         '    <div class="sb-legend">',
