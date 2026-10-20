@@ -237,7 +237,7 @@ def sidebar_item(e, selected):
     t_ms = int(e.get("t_ms") or 0)
     # Click handling is done via event delegation in JS; only data-id is needed.
     return (
-        '<div class="ev-item' + (' ev-sel' if selected else '') + '" data-id="' + html.escape(e["id"], quote=True) + '" '
+        '<div class="ev-item' + (' ev-sel' if selected else '') + '" data-track-action="select_event" data-id="' + html.escape(e["id"], quote=True) + '" '
         'style="' + sel + 'cursor:pointer;padding:10px 14px;border-bottom:1px solid #eee;">'
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">'
         '<span style="font-size:18px;font-weight:900;color:' + ac + '">M' + str(mag) + '</span>'
@@ -482,10 +482,8 @@ def build(top_events, all_data, now_str):
         '"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},'
         '"author":{"@type":"Person","name":"Arash Nassirpour"}}'
         '</script>',
-        "<!-- Google Analytics -->",
-        '<script async src="https://www.googletagmanager.com/gtag/js?id=G-0WERZ6WKQY"></script>',
-        "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
-        'gtag("js",new Date());gtag("config","G-0WERZ6WKQY");</script>',
+        '<script defer src="/assets/analytics.js?v=2"></script>',
+        '\n<script defer src="/assets/engagement.js?v=1"></script>\n<script type="module" src="/assets/vitals.js?v=1"></script>\n<link rel="stylesheet" href="/assets/tool-guide.css?v=1">\n',
         '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>',
         "<style>" + CSS + "</style>",
         "</head><body>",
@@ -611,7 +609,7 @@ def build(top_events, all_data, now_str):
         "    </div>",
         '    <div class="sb-list">' + sb + "</div>",
         "  </div>",
-        '  <div class="rp"><div id="rp-inner"></div></div>',
+        '  <div class="rp"><div id="rp-inner"></div>' + '<section class="platform-guide" aria-labelledby="platform-guide-title"><h2 id="platform-guide-title">Using earthquake rapid response</h2><p>Read a source-linked briefing for significant earthquakes, including USGS ShakeMap, PAGER, ground-failure and aftershock products when available. Product status and update times matter.</p><details><summary>Try a worked example</summary><ol><li>Choose an earthquake from Top Events.</li><li>Compare PGA and MMI map layers: ground acceleration and felt intensity describe different quantities.</li><li>Open the original USGS event and product links to inspect their timestamps, status and assumptions.</li></ol></details><nav aria-label="Related tools"><a href="/world-faults/">World fault map</a><a href="/earthquake-rupture/">Fault mechanism</a></nav></section>' + '</div>',
         "</div>",
         # Shared site footer - keep identical across all arashnassirpour.com repos.
         # Placed here, as the last item inside .app-shell (flex-shrink:0), so it
