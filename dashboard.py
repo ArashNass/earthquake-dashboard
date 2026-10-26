@@ -491,7 +491,7 @@ def build(top_events, all_data, now_str, rw_alerts=None):
         '"author":{"@type":"Person","name":"Arash Nassirpour"}}'
         '</script>',
         '<script defer src="/assets/analytics.js?v=2"></script>',
-        '\n<script defer src="/assets/engagement.js?v=1"></script>\n<script type="module" src="/assets/vitals.js?v=1"></script>\n<link rel="stylesheet" href="/assets/tool-guide.css?v=1">\n',
+        '\n<script defer src="/assets/engagement.js?v=1"></script>\n<script type="module" src="/assets/vitals.js?v=1"></script>\n',
         '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>',
         "<style>" + CSS + "</style>",
         "</head><body>",
@@ -617,7 +617,7 @@ def build(top_events, all_data, now_str, rw_alerts=None):
         "    </div>",
         '    <div class="sb-list">' + sb + "</div>",
         "  </div>",
-        '  <div class="rp"><div id="rp-inner"></div>' + '<section class="platform-guide" aria-labelledby="platform-guide-title"><h2 id="platform-guide-title">Using earthquake rapid response</h2><p>Read a source-linked briefing for significant earthquakes, including USGS ShakeMap, PAGER, ground-failure and aftershock products when available. Product status and update times matter.</p><details><summary>Try a worked example</summary><ol><li>Choose an earthquake from Top Events.</li><li>Compare PGA and MMI map layers: ground acceleration and felt intensity describe different quantities.</li><li>Open the original USGS event and product links to inspect their timestamps, status and assumptions.</li></ol></details><nav aria-label="Related tools"><a href="/world-faults/">World fault map</a><a href="/earthquake-rupture/">Fault mechanism</a></nav></section>' + '</div>',
+        '  <div class="rp"><div id="rp-inner"></div></div>',
         "</div>",
         # Shared site footer - keep identical across all arashnassirpour.com repos.
         # Placed here, as the last item inside .app-shell (flex-shrink:0), so it
