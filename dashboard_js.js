@@ -531,7 +531,7 @@ function buildReport(data) {
     + '<div style="' + g2 + '">' + panel('Event Parameters', paramsH) + panel('Fault Mechanism', focH) + '</div>'
     + '<div style="' + g2 + '">' + panel('Aftershock Forecast', afsH) + panel('Historical Context (250 km / 100 yr)', histH) + '</div>'
     + '<div style="font-size:10px;color:#aaa;padding-top:6px;border-top:1px solid #e2e6f0;line-height:1.6">'
-    + 'Sources: USGS (ShakeMap, PAGER, Ground Failure, moment tensor, finite fault, aftershock forecast, Did You Feel It?) · Open-Meteo · links to Wikipedia, EMSC, GDACS, GEM, ReliefWeb and news outlets. '
+    + 'Sources: USGS (ShakeMap, PAGER, Ground Failure, moment tensor, finite fault, aftershock forecast, Did You Feel It?) · Open-Meteo · ReliefWeb (UN OCHA) · links to Wikipedia, EMSC, GDACS, GEM and news outlets. '
     + 'Automatic USGS solutions are preliminary and can change. For situational awareness only, not for emergency or life-safety decisions.'
     + '</div>';
 }

@@ -22,7 +22,7 @@ import usgs_products as U
 from fetcher    import (fetch_top_events, fetch_detail, enrich, get,
                         extract_shakemap, extract_aftershock, extract_focal,
                         fetch_historical, fetch_weather, fetch_general_links,
-                        fetch_media_links, fetch_ai, get_country)
+                        fetch_media_links, fetch_reliefweb_alerts, fetch_ai, get_country)
 from dashboard  import build
 
 
@@ -128,6 +128,9 @@ def run(args, open_browser=True):
         print(f"  Found {len(top_events)}. Largest: M{largest['mag']} {largest['place']}")
 
         all_data = [None] * len(top_events)
+        rw_alerts = []
+        rw_thread = threading.Thread(target=lambda: rw_alerts.extend(fetch_reliefweb_alerts()), daemon=True)
+        rw_thread.start()
 
         def load_slot(i, stub):
             print(f"  [{i + 1}/{len(top_events)}] M{stub['mag']} {stub['place'][:50]}...")
@@ -139,10 +142,11 @@ def run(args, open_browser=True):
             t.start()
         for t in ev_threads:
             t.join()
+        rw_thread.join(timeout=30)
 
     now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     print("  Building dashboard...")
-    html = build(top_events, all_data, now_str)
+    html = build(top_events, all_data, now_str, rw_alerts)
     out  = HERE / OUTPUT_FILE
     out.write_text(html, encoding="utf-8")
     print(f"  Saved: {out.name}  ({out.stat().st_size // 1024} KB)")

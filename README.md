@@ -18,9 +18,10 @@ A self-updating briefing page for the largest earthquakes of the last 90 days. E
 | Key points, tectonic setting, reported impacts | USGS event text products |
 | Historical context | USGS catalogue (M5.5+, 250 km, 100 years) |
 | Media | One link per outlet (BBC News, CNN, Sky News, ABC News): the best matching headline from Google News RSS limited to that outlet, or that outlet's own search page when nothing reliable is found |
-| General | Wikipedia (event article only when year, month, day within one and magnitude within 0.5 match; otherwise a search), Wikipedia list of earthquakes of the year, USGS pages, EMSC, GDACS, ReliefWeb, GEM |
+| General | Wikipedia (event article only when year, month, day within one and magnitude within 0.5 match; otherwise a search), Wikipedia list of earthquakes of the year, USGS pages, EMSC, GDACS, GEM |
+| ReliefWeb | UN OCHA ReliefWeb API: the disaster record for the event (same country, event date within 3 days) and its three latest reports; a ReliefWeb search link when there is no record yet |
 | Rainfall | Open-Meteo (context only) |
-| Alert strip | USGS, UN GDACS and NASA EONET |
+| Alert strip | USGS, UN GDACS and NASA EONET (fetched by the browser on page load), plus ReliefWeb disasters with status alert, current or ongoing from the last 60 days (fetched at build time, so hourly) |
 | Map tiles | Esri |
 
 Failed event-detail requests are reported as unavailable; nothing is invented. A source that fails is omitted. A total build failure exits unsuccessfully so the last good deployment stays live.
@@ -41,6 +42,7 @@ Optional environment variables:
 | Variable | Effect |
 |---|---|
 | `ANTHROPIC_API_KEY` | Enables the optional AI narrative. Without it, that feature is skipped and the rest still builds |
+| `RELIEFWEB_APPNAME` | Approved ReliefWeb API appname. Without it, ReliefWeb records and alerts are skipped and a ReliefWeb search link is shown. In production it comes from the repository secret of the same name |
 
 ## Architecture
 
