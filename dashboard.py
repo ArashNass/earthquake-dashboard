@@ -14,13 +14,15 @@ HERE = Path(__file__).resolve().parent
 
 ERCC_UPGRADE_JS = r"""
 (function(){
-  // Global alerts from three free, keyless feeds: USGS (significant earthquakes), UN GDACS (alerts of every
-  // hazard type, with RED / ORANGE / GREEN levels) and NASA EONET (open storms, volcanoes, floods, wildfires ...).
+  // Global alerts from USGS (significant earthquakes), UN GDACS (alerts of every hazard type, with RED / ORANGE /
+  // GREEN levels) and NASA EONET (open storms, volcanoes, floods, wildfires ...), fetched in the browser, plus the
+  // disasters UN OCHA ReliefWeb lists as alert or ongoing, fetched at build time (its API needs an appname).
   // Items are grouped by hazard, capped per hazard, ordered by severity and interleaved so the ticker always mixes types.
   var DAY = 864e5;
-  var COLORS = {'Earthquake':'#d9534f','Tropical Cyclone':'#5b7fd6','Severe Storm':'#5b7fd6','Flood':'#1976d2','Volcano':'#ef6c00','Wildfire':'#e65100','Drought':'#b08900','Landslide':'#8d6e63','Sea and Lake Ice':'#4aa3c8','Snow':'#6aa5c8','Dust and Haze':'#a1887f','Temperature Extreme':'#c62828','Water Color':'#26a69a','Manmade':'#7e57c2'};
+  var COLORS = {'Earthquake':'#d9534f','Tropical Cyclone':'#5b7fd6','Severe Storm':'#5b7fd6','Flood':'#1976d2','Volcano':'#ef6c00','Wildfire':'#e65100','Drought':'#b08900','Landslide':'#8d6e63','Sea and Lake Ice':'#4aa3c8','Snow':'#6aa5c8','Dust and Haze':'#a1887f','Temperature Extreme':'#c62828','Water Color':'#26a69a','Manmade':'#7e57c2','Epidemic':'#00897b','Tsunami':'#0277bd'};
   var CAP = {'Earthquake':5,'Tropical Cyclone':3,'Severe Storm':3,'Flood':4,'Volcano':3,'Wildfire':4,'Drought':2};
   var EONET_CAT = {'Severe Storms':'Severe Storm','Volcanoes':'Volcano','Wildfires':'Wildfire','Floods':'Flood','Landslides':'Landslide','Drought':'Drought','Temperature Extremes':'Temperature Extreme','Earthquakes':'Earthquake'};
+  var RW = __RW_ALERTS__;
   var GD_CAT = {TC:'Tropical Cyclone', FL:'Flood', VO:'Volcano', DR:'Drought', WF:'Wildfire'};
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -72,6 +74,12 @@ ERCC_UPGRADE_JS = r"""
       }
       var re = new RegExp('^' + cat.replace(/ /g, '\\s*') + 's?\\s*', 'i');
       pool.push({ cat:cat, title:t.replace(re, '') || t, link:u, lvl:0, t:Date.parse(last) || 0, m:0 });
+    });
+    RW.forEach(function(d){                                         // ReliefWeb (skip what another feed already shows)
+      var u = safeUrl(d.link), cs = (d.countries || []).map(function(c){ return c.toLowerCase(); });
+      if (!u || !d.title) return;
+      if (pool.some(function(i){ var tl = i.title.toLowerCase(); return i.cat === d.cat && cs.some(function(c){ return c && tl.indexOf(c) >= 0; }); })) return;
+      pool.push({ cat:d.cat, title:d.title + (d.alert ? ' (early alert)' : '') + ' · ReliefWeb', link:u, lvl:0, t:d.t || 0, m:0 });
     });
     var groups = {};
     pool.forEach(function(i){ (groups[i.cat] = groups[i.cat] || []).push(i); });
@@ -433,7 +441,7 @@ def load_js():
     return path.read_text(encoding="utf-8")
 
 
-def build(top_events, all_data, now_str):
+def build(top_events, all_data, now_str, rw_alerts=None):
     # all_data[i] was loaded from top_events[i]; keep the two lists aligned and
     # make the sidebar use the id the data was actually stored under, so a
     # feed-id/code mismatch can never break event selection.
@@ -593,7 +601,7 @@ def build(top_events, all_data, now_str):
         '    <option value="other">Other</option>'
         '  </select>'
         "</div>",
-        "<script>" + ERCC_UPGRADE_JS + "</script>",
+        "<script>" + ERCC_UPGRADE_JS.replace("__RW_ALERTS__", _json_for_script(rw_alerts or [])) + "</script>",
         '<div class="nav">',
         "  <div>",
         '    <h1 class="nav-title"><span class="live"></span>Earthquake Rapid Response Dashboard</h1>',

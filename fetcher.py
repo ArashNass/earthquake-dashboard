@@ -23,7 +23,7 @@ from engine import enrich  # re-exported for run.py
 
 __all__ = ["fetch_top_events", "fetch_detail", "enrich", "extract_shakemap",
            "extract_aftershock", "extract_focal", "fetch_historical",
-           "fetch_weather", "fetch_general_links", "fetch_media_links", "fetch_ai",
+           "fetch_weather", "fetch_general_links", "fetch_media_links", "fetch_reliefweb_alerts", "fetch_ai",
            "get_country"]
 
 if not SSL:
@@ -286,6 +286,96 @@ def _find_emsc(ev, dt):
     return None
 
 
+# ReliefWeb API v2 (UN OCHA). Requests need an approved appname, read from the environment so it
+# stays out of the public repository; without it every ReliefWeb lookup is skipped.
+_RW_API = "https://api.reliefweb.int/v2/"
+
+
+def _reliefweb(resource, body, timeout=12):
+    appname = os.environ.get("RELIEFWEB_APPNAME", "").strip()
+    if not appname:
+        return []
+    r = post(_RW_API + resource, params={"appname": appname}, json=body, timeout=timeout)
+    r.raise_for_status()
+    return [d.get("fields") or {} for d in r.json().get("data", [])]
+
+
+def _rw_date(s):
+    try:
+        return datetime.fromisoformat(s)
+    except (TypeError, ValueError):
+        return None
+
+
+def _find_reliefweb(ev, country, dt, n_reports=3):
+    """The ReliefWeb disaster record for this earthquake (same country, event date within 3 days)
+    and its latest reports, as {name, url, status, reports: [{title, url, source, date}]}; or None."""
+    if not dt or not country:
+        return None
+    days = lambda k: (dt + timedelta(days=k)).strftime("%Y-%m-%dT00:00:00+00:00")
+    cands = _reliefweb("disasters", {
+        "limit": 10, "preset": "latest",
+        "fields": {"include": ["id", "name", "status", "date.event", "country.name", "url_alias"]},
+        "filter": {"operator": "AND", "conditions": [
+            {"field": "type.name", "value": "Earthquake"},
+            {"field": "date.event", "value": {"from": days(-3), "to": days(3)}}]}})
+    best = None
+    for c in cands:
+        names = {x.get("name", "").lower() for x in c.get("country") or []}
+        when = _rw_date((c.get("date") or {}).get("event"))
+        if country.lower() in names and when and c.get("url_alias"):
+            gap = abs((when.date() - dt.date()).days)
+            if best is None or gap < best[0]:
+                best = (gap, c)
+    if not best:
+        return None
+    d = best[1]
+    reports = _reliefweb("reports", {
+        "limit": n_reports, "sort": ["date.created:desc"],
+        "fields": {"include": ["title", "url_alias", "source.shortname", "date.created"]},
+        "filter": {"field": "disaster.id", "value": d["id"]}})
+    return {"name": d.get("name", ""), "url": d["url_alias"], "status": d.get("status", ""),
+            "reports": [{"title": r.get("title", ""), "url": r.get("url_alias", ""),
+                         "source": ", ".join(s.get("shortname", "") for s in (r.get("source") or [])[:2]),
+                         "date": (r.get("date") or {}).get("created", "")[:10]}
+                        for r in reports if r.get("title") and r.get("url_alias")]}
+
+
+# ReliefWeb disaster types folded into the alert-strip hazard categories.
+RW_CAT = {"Tropical Cyclone": "Tropical Cyclone", "Flood": "Flood", "Flash Flood": "Flood",
+          "Earthquake": "Earthquake", "Volcano": "Volcano", "Wild Fire": "Wildfire", "Drought": "Drought",
+          "Land Slide": "Landslide", "Mud Slide": "Landslide", "Severe Local Storm": "Severe Storm",
+          "Extratropical Cyclone": "Severe Storm", "Storm Surge": "Severe Storm", "Tsunami": "Tsunami",
+          "Cold Wave": "Temperature Extreme", "Heat Wave": "Temperature Extreme", "Epidemic": "Epidemic"}
+
+
+def fetch_reliefweb_alerts(days=60, limit=30):
+    """Disasters ReliefWeb currently lists as alert, current or ongoing, with an event date in the last `days`,
+    for the alert strip: [{cat, title, link, t, alert}]. Empty without RELIEFWEB_APPNAME or on failure."""
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%dT00:00:00+00:00")
+    try:
+        rows = _reliefweb("disasters", {
+            "limit": limit, "sort": ["date.event:desc"],
+            "fields": {"include": ["name", "status", "date.event", "country.name", "primary_type.name", "url_alias"]},
+            "filter": {"operator": "AND", "conditions": [
+                {"field": "status", "value": ["alert", "current", "ongoing"], "operator": "OR"},
+                {"field": "date.event", "value": {"from": since}}]}})
+    except Exception as ex:
+        print(f"  [WARN] ReliefWeb alerts: {ex}")
+        return []
+    out = []
+    for d in rows:
+        typ = (d.get("primary_type") or {}).get("name", "")
+        when = _rw_date((d.get("date") or {}).get("event"))
+        if not d.get("url_alias") or not d.get("name"):
+            continue
+        out.append({"cat": RW_CAT.get(typ, typ or "Other"), "title": d["name"], "link": d["url_alias"],
+                    "t": int(when.timestamp() * 1000) if when else 0,
+                    "countries": [c.get("name", "") for c in d.get("country") or []],
+                    "alert": d.get("status") == "alert"})
+    return out
+
+
 def _gem_url(eid):
     url = f"https://www.globalquakemodel.org/post-event-info/{eid}"
     try:
@@ -315,6 +405,7 @@ def fetch_general_links(ev, detail):
         ("gdacs", lambda: _find_gdacs(ev, dt)),
         ("emsc", lambda: _find_emsc(ev, dt)),
         ("gem", lambda: _gem_url(eid)),
+        ("rw", lambda: _find_reliefweb(ev, country, dt)),
     )]
     for t in threads:
         t.start()
@@ -338,8 +429,15 @@ def fetch_general_links(ev, detail):
         links.append({"title": "EMSC — Event report", "url": res["emsc"]})
     if res.get("gdacs"):
         links.append({"title": "GDACS — Alert report", "url": res["gdacs"]})
-    links.append({"title": f"ReliefWeb — Earthquake updates: {country}",
-                  "url": f"https://reliefweb.int/updates?search={quote_plus('earthquake ' + country)}"})
+    rw = res.get("rw")
+    if rw:
+        links.append({"title": f"ReliefWeb — {rw['name']}", "url": rw["url"]})
+        for r in rw["reports"]:
+            meta = " · ".join(x for x in (r["source"], r["date"]) if x)
+            links.append({"title": f"ReliefWeb report — {r['title']}" + (f" ({meta})" if meta else ""), "url": r["url"]})
+    else:
+        links.append({"title": f"ReliefWeb — Earthquake updates: {country}",
+                      "url": f"https://reliefweb.int/updates?search={quote_plus('earthquake ' + country)}"})
     if res.get("gem"):
         links.append({"title": "GEM Foundation — Post-event assessment", "url": res["gem"]})
     if ev.get("tsunami"):
